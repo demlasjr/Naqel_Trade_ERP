@@ -13,6 +13,8 @@ import ChartOfAccounts from "./pages/ChartOfAccounts";
 import Accounting from "./pages/Accounting";
 import HRPayroll from "./pages/HRPayroll";
 import ActivityLog from "./pages/ActivityLog";
+import UserManagement from "./pages/UserManagement";
+import RolesPermissions from "./pages/RolesPermissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/accounting" element={<Accounting />} />
             <Route path="/hr-payroll" element={<HRPayroll />} />
             <Route path="/activity-log" element={<ActivityLog />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/roles-permissions" element={<RolesPermissions />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

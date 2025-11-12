@@ -9,6 +9,7 @@ import {
   Users,
   Building2,
   Activity,
+  Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -69,6 +70,11 @@ const menuItems = [
     title: "Activity Log",
     url: "/activity-log",
     icon: Activity,
+  },
+  {
+    title: "User Management",
+    url: "/user-management",
+    icon: Shield,
   },
 ];
 
