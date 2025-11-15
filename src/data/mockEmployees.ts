@@ -21,7 +21,7 @@ export const mockEmployees: Employee[] = [
     employmentStatus: "active",
     hireDate: "2020-03-15",
     baseSalary: 120000,
-    currency: "USD",
+    currency: "MRU",
     paymentFrequency: "monthly",
     emergencyContact: {
       name: "Jane Smith",
@@ -51,7 +51,7 @@ export const mockEmployees: Employee[] = [
     employmentStatus: "active",
     hireDate: "2019-06-01",
     baseSalary: 95000,
-    currency: "USD",
+    currency: "MRU",
     paymentFrequency: "monthly",
     emergencyContact: {
       name: "Michael Johnson",
@@ -81,7 +81,7 @@ export const mockEmployees: Employee[] = [
     employmentStatus: "active",
     hireDate: "2021-01-10",
     baseSalary: 75000,
-    currency: "USD",
+    currency: "MRU",
     paymentFrequency: "monthly",
     emergencyContact: {
       name: "Lisa Brown",
@@ -111,7 +111,7 @@ export const mockEmployees: Employee[] = [
     employmentStatus: "active",
     hireDate: "2022-04-15",
     baseSalary: 65000,
-    currency: "USD",
+    currency: "MRU",
     paymentFrequency: "monthly",
     emergencyContact: {
       name: "Robert Davis",
@@ -141,7 +141,7 @@ export const mockEmployees: Employee[] = [
     employmentStatus: "active",
     hireDate: "2023-02-20",
     baseSalary: 55000,
-    currency: "USD",
+    currency: "MRU",
     paymentFrequency: "monthly",
     emergencyContact: {
       name: "Karen Wilson",

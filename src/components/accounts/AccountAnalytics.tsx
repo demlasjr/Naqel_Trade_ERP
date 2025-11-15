@@ -98,7 +98,7 @@ export function AccountAnalytics({ accounts }: AccountAnalyticsProps) {
   function formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MRU',
       notation: 'compact',
       maximumFractionDigits: 1,
     }).format(amount);
@@ -107,7 +107,7 @@ export function AccountAnalytics({ accounts }: AccountAnalyticsProps) {
   function formatCurrencyFull(amount: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MRU',
     }).format(amount);
   }
 

@@ -63,7 +63,7 @@ export function PayslipDialog({
         <div className="space-y-6 print:p-8">
           {/* Header */}
           <div className="text-center pb-4 border-b">
-            <h2 className="text-2xl font-bold">CompanyERP Pro</h2>
+            <h2 className="text-2xl font-bold">NaqelERP</h2>
             <p className="text-sm text-muted-foreground">Payslip for the month of {format(new Date(payroll.periodStart), "MMMM yyyy")}</p>
           </div>
 

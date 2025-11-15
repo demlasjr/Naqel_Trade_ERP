@@ -61,7 +61,7 @@ export function AccountHierarchy({
   function formatBalance(balance: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'MRU',
     }).format(balance);
   }
 

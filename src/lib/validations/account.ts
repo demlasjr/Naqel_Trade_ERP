@@ -17,7 +17,7 @@ export const accountSchema = z.object({
   description: z.string().max(1000, "Description must not exceed 1000 characters").optional(),
   isActive: z.boolean().default(true),
   balance: z.number().default(0),
-  currency: z.string().default("USD"),
+  currency: z.string().default("MRU"),
 });
 
 export const accountHierarchySchema = z.object({

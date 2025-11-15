@@ -209,12 +209,12 @@ export function EmployeeFormDialog({
                 </div>
                 <div>
                   <Label htmlFor="currency">Currency *</Label>
-                  <Select name="currency" defaultValue={employee?.currency || "USD"}>
+                  <Select name="currency" defaultValue={employee?.currency || "MRU"}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="MRU">MRU</SelectItem>
                       <SelectItem value="EUR">EUR</SelectItem>
                       <SelectItem value="GBP">GBP</SelectItem>
                     </SelectContent>

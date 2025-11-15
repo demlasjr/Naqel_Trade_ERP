@@ -234,7 +234,7 @@ export default function ChartOfAccounts() {
             <CardTitle className="text-3xl">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
-                currency: 'USD',
+                currency: 'MRU',
                 notation: 'compact',
               }).format(totalBalance)}
             </CardTitle>
