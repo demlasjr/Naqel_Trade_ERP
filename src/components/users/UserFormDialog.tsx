@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,9 +27,64 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
     department: user?.department || "",
     status: user?.status || "active",
   });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        name: user?.name || "",
+        email: user?.email || "",
+        role: user?.role || ("viewer" as AppRole),
+        department: user?.department || "",
+        status: user?.status || "active",
+      });
+      setErrors({});
+    }
+  }, [open, user]);
+
+  const validateField = (name: string, value: any) => {
+    const newErrors = { ...errors };
+    
+    switch (name) {
+      case "name":
+        if (!value || value.length < 2) {
+          newErrors.name = "Name must be at least 2 characters";
+        } else if (value.length > 100) {
+          newErrors.name = "Name must not exceed 100 characters";
+        } else {
+          delete newErrors.name;
+        }
+        break;
+      case "email":
+        if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          newErrors.email = "Please enter a valid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleBlur = (field: string) => {
+    validateField(field, formData[field as keyof typeof formData]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all fields
+    const nameValid = validateField("name", formData.name);
+    const emailValid = validateField("email", formData.email);
+    
+    if (!nameValid || !emailValid) {
+      toast.error("Please fix the validation errors");
+      return;
+    }
+
     onSave(formData);
     toast.success(user ? "User updated successfully" : "User created successfully");
     onOpenChange(false);
@@ -44,28 +98,47 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <div className="flex items-center gap-2">
+              <label htmlFor="name" className="text-sm font-medium flex items-center gap-1">
+                Full Name
+                <span className="text-destructive">*</span>
+              </label>
+            </div>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
+              onBlur={() => handleBlur("name")}
             />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <div className="flex items-center gap-2">
+              <label htmlFor="email" className="text-sm font-medium flex items-center gap-1">
+                Email
+                <span className="text-destructive">*</span>
+              </label>
+            </div>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
+              onBlur={() => handleBlur("email")}
             />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <label htmlFor="role" className="text-sm font-medium flex items-center gap-1">
+              Role
+              <span className="text-destructive">*</span>
+            </label>
             <Select
               value={formData.role}
               onValueChange={(value: AppRole) => setFormData({ ...formData, role: value })}
@@ -86,7 +159,9 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="department">Department</Label>
+            <label htmlFor="department" className="text-sm font-medium">
+              Department
+            </label>
             <Input
               id="department"
               value={formData.department}
@@ -95,7 +170,10 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <label htmlFor="status" className="text-sm font-medium flex items-center gap-1">
+              Status
+              <span className="text-destructive">*</span>
+            </label>
             <Select
               value={formData.status}
               onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}
