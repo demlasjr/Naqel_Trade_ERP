@@ -31,7 +31,7 @@ export default function AccountingAnalytics() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${currentProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold">MRU {currentProfit.toLocaleString()}</div>
             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
               {profitChange >= 0 ? (
                 <TrendingUp className="h-4 w-4 text-green-600" />
@@ -52,7 +52,7 @@ export default function AccountingAnalytics() {
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$485,000</div>
+            <div className="text-2xl font-bold">MRU 485,000</div>
             <p className="text-sm text-muted-foreground mt-1">
               Current + Fixed Assets
             </p>

@@ -101,7 +101,7 @@ export function TransactionDetailDialog({ transaction, open, onOpenChange }: Tra
           <div>
             <p className="text-sm text-muted-foreground mb-1">Amount</p>
             <p className="text-2xl font-bold text-primary">
-              ${transaction.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              MRU {transaction.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
 

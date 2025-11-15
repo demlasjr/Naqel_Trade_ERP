@@ -124,7 +124,7 @@ export function PayslipDialog({
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Base Salary</span>
-                <span className="font-medium">${payroll.baseSalary.toFixed(2)}</span>
+                <span className="font-medium">MRU {payroll.baseSalary.toFixed(2)}</span>
               </div>
               
               {payroll.allowances.map((allowance, index) => (
@@ -132,7 +132,7 @@ export function PayslipDialog({
                   <span className="text-muted-foreground">
                     {allowance.description} <span className="text-xs">({allowance.type})</span>
                   </span>
-                  <span className="font-medium">${allowance.amount.toFixed(2)}</span>
+                  <span className="font-medium">MRU {allowance.amount.toFixed(2)}</span>
                 </div>
               ))}
               
@@ -140,7 +140,7 @@ export function PayslipDialog({
               
               <div className="flex justify-between font-semibold">
                 <span>Gross Salary</span>
-                <span className="text-primary">${payroll.grossSalary.toFixed(2)}</span>
+                <span className="text-primary">MRU {payroll.grossSalary.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -156,7 +156,7 @@ export function PayslipDialog({
                   <span className="text-muted-foreground">
                     {deduction.description} <span className="text-xs">({deduction.type})</span>
                   </span>
-                  <span className="font-medium text-destructive">-${deduction.amount.toFixed(2)}</span>
+                  <span className="font-medium text-destructive">-MRU {deduction.amount.toFixed(2)}</span>
                 </div>
               ))}
               
@@ -164,7 +164,7 @@ export function PayslipDialog({
               
               <div className="flex justify-between font-semibold">
                 <span>Total Deductions</span>
-                <span className="text-destructive">-${payroll.totalDeductions.toFixed(2)}</span>
+                <span className="text-destructive">-MRU {payroll.totalDeductions.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -175,7 +175,7 @@ export function PayslipDialog({
           <div className="bg-primary/5 p-4 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="text-xl font-bold">Net Salary</span>
-              <span className="text-3xl font-bold text-primary">${payroll.netSalary.toFixed(2)}</span>
+              <span className="text-3xl font-bold text-primary">MRU {payroll.netSalary.toFixed(2)}</span>
             </div>
           </div>
 

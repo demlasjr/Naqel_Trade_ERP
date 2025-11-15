@@ -367,8 +367,8 @@ export default function Products() {
                           {getStockBadge(product)}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right text-sm">${product.costPrice.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-medium">${product.sellingPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-sm">MRU {product.costPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-medium">MRU {product.sellingPrice.toFixed(2)}</TableCell>
                       <TableCell className="text-right text-sm text-green-600">{product.markup.toFixed(1)}%</TableCell>
                       <TableCell>
                         <Badge variant={getStatusVariant(product.status)} className="capitalize">
@@ -418,7 +418,7 @@ export default function Products() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Price</p>
-                    <p className="font-semibold text-primary">${product.sellingPrice.toFixed(2)}</p>
+                    <p className="font-semibold text-primary">MRU {product.sellingPrice.toFixed(2)}</p>
                   </div>
                 </div>
                 {getStockBadge(product)}

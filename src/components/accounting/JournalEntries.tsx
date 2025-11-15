@@ -184,10 +184,10 @@ export default function JournalEntries() {
                       <TableCell className="font-mono">{entry.reference}</TableCell>
                       <TableCell>{entry.description}</TableCell>
                       <TableCell className="text-right font-medium">
-                        ${totalDebit.toLocaleString()}
+                        MRU {totalDebit.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        ${totalCredit.toLocaleString()}
+                        MRU {totalCredit.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge variant={entry.status === 'posted' ? 'default' : 'secondary'}>

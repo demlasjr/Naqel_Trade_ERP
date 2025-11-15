@@ -70,20 +70,20 @@ export default function TrialBalance() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {account.debit > 0 ? `$${account.debit.toLocaleString()}` : '-'}
+                      {account.debit > 0 ? `MRU ${account.debit.toLocaleString()}` : '-'}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {account.credit > 0 ? `$${account.credit.toLocaleString()}` : '-'}
+                      {account.credit > 0 ? `MRU ${account.credit.toLocaleString()}` : '-'}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted font-bold">
                   <TableCell colSpan={3}>Total</TableCell>
                   <TableCell className="text-right text-lg">
-                    ${totalDebits.toLocaleString()}
+                    MRU {totalDebits.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right text-lg">
-                    ${totalCredits.toLocaleString()}
+                    MRU {totalCredits.toLocaleString()}
                   </TableCell>
                 </TableRow>
                 <TableRow className={isBalanced ? 'bg-green-50' : 'bg-red-50'}>
@@ -91,7 +91,7 @@ export default function TrialBalance() {
                     {isBalanced ? '✓ Balanced' : '⚠ Out of Balance'}
                   </TableCell>
                   <TableCell className="text-right font-semibold" colSpan={2}>
-                    Difference: ${Math.abs(totalDebits - totalCredits).toLocaleString()}
+                    Difference: MRU {Math.abs(totalDebits - totalCredits).toLocaleString()}
                   </TableCell>
                 </TableRow>
               </TableBody>

@@ -100,10 +100,10 @@ export function SalesDetailDialog({ sale, open, onOpenChange }: SalesDetailDialo
                         </div>
                       </td>
                       <td className="text-right p-3">{item.quantity}</td>
-                      <td className="text-right p-3">${item.unitPrice.toFixed(2)}</td>
+                      <td className="text-right p-3">MRU {item.unitPrice.toFixed(2)}</td>
                       <td className="text-right p-3">{item.discount}%</td>
                       <td className="text-right p-3">{item.tax}%</td>
-                      <td className="text-right p-3 font-medium">${item.total.toFixed(2)}</td>
+                      <td className="text-right p-3 font-medium">MRU {item.total.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -116,28 +116,28 @@ export function SalesDetailDialog({ sale, open, onOpenChange }: SalesDetailDialo
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">${sale.subtotal.toFixed(2)}</span>
+              <span className="font-medium">MRU {sale.subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Discount:</span>
-              <span className="font-medium text-red-500">-${sale.discountAmount.toFixed(2)}</span>
+              <span className="font-medium text-red-500">-MRU {sale.discountAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tax:</span>
-              <span className="font-medium">${sale.taxAmount.toFixed(2)}</span>
+              <span className="font-medium">MRU {sale.taxAmount.toFixed(2)}</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-semibold">
               <span>Total:</span>
-              <span>${sale.total.toFixed(2)}</span>
+              <span>MRU {sale.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Paid Amount:</span>
-              <span className="font-medium text-green-600">${sale.paidAmount.toFixed(2)}</span>
+              <span className="font-medium text-green-600">MRU {sale.paidAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Balance Due:</span>
-              <span className="font-medium text-orange-600">${sale.balance.toFixed(2)}</span>
+              <span className="font-medium text-orange-600">MRU {sale.balance.toFixed(2)}</span>
             </div>
           </div>
 

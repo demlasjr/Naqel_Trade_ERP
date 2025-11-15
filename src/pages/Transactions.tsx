@@ -290,7 +290,7 @@ export default function Transactions() {
                     <TableCell className="text-sm text-muted-foreground">{txn.accountFrom || "-"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{txn.accountTo || "-"}</TableCell>
                     <TableCell className="text-right font-medium">
-                      ${txn.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      MRU {txn.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(txn.status)} className="capitalize">

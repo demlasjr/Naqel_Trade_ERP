@@ -226,9 +226,9 @@ export default function Sales() {
                       {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
                     </Badge>
                   </td>
-                  <td className="p-4 text-right font-medium">${sale.total.toFixed(2)}</td>
-                  <td className="p-4 text-right text-green-600">${sale.paidAmount.toFixed(2)}</td>
-                  <td className="p-4 text-right text-orange-600">${sale.balance.toFixed(2)}</td>
+                  <td className="p-4 text-right font-medium">MRU {sale.total.toFixed(2)}</td>
+                  <td className="p-4 text-right text-green-600">MRU {sale.paidAmount.toFixed(2)}</td>
+                  <td className="p-4 text-right text-orange-600">MRU {sale.balance.toFixed(2)}</td>
                   <td className="p-4">
                     <div className="flex items-center justify-center gap-2">
                       <Button variant="ghost" size="icon" onClick={() => handleViewDetails(sale)}>

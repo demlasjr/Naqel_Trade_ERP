@@ -33,7 +33,7 @@ export function PurchaseAnalytics({ purchases }: PurchaseAnalyticsProps) {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${totalSpent.toLocaleString()}</div>
+          <div className="text-2xl font-bold">MRU {totalSpent.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">All-time purchases</p>
         </CardContent>
       </Card>
@@ -44,7 +44,7 @@ export function PurchaseAnalytics({ purchases }: PurchaseAnalyticsProps) {
           <DollarSign className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">${totalPaid.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-green-600">MRU {totalPaid.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">Paid to vendors</p>
         </CardContent>
       </Card>
@@ -55,7 +55,7 @@ export function PurchaseAnalytics({ purchases }: PurchaseAnalyticsProps) {
           <AlertCircle className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-orange-600">${outstandingBalance.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-orange-600">MRU {outstandingBalance.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">Balance due</p>
         </CardContent>
       </Card>
@@ -77,7 +77,7 @@ export function PurchaseAnalytics({ purchases }: PurchaseAnalyticsProps) {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          <div className="text-2xl font-bold">MRU {avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
           <p className="text-xs text-muted-foreground">Per purchase order</p>
         </CardContent>
       </Card>

@@ -164,7 +164,7 @@ export function PayrollFormDialog({
           <div>
             <Label>Base Salary (Monthly)</Label>
             <div className="text-2xl font-bold text-primary mt-1">
-              ${baseSalary.toFixed(2)}
+              MRU {baseSalary.toFixed(2)}
             </div>
           </div>
 
@@ -306,16 +306,16 @@ export function PayrollFormDialog({
           <div className="space-y-2 bg-muted/30 p-4 rounded-lg">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Gross Salary:</span>
-              <span className="font-semibold">${calculateGross().toFixed(2)}</span>
+              <span className="font-semibold">MRU {calculateGross().toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Deductions:</span>
-              <span className="font-semibold text-destructive">-${calculateDeductions().toFixed(2)}</span>
+              <span className="font-semibold text-destructive">-MRU {calculateDeductions().toFixed(2)}</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg">
               <span className="font-semibold">Net Salary:</span>
-              <span className="font-bold text-primary">${calculateNet().toFixed(2)}</span>
+              <span className="font-bold text-primary">MRU {calculateNet().toFixed(2)}</span>
             </div>
           </div>
 

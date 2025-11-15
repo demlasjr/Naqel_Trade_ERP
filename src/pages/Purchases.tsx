@@ -217,9 +217,9 @@ export default function Purchases() {
                   <td className="p-4">
                     <Badge className={statusStyles[purchase.status]}>{purchase.status.toUpperCase()}</Badge>
                   </td>
-                  <td className="p-4 text-right font-semibold">${purchase.total.toLocaleString()}</td>
-                  <td className="p-4 text-right text-green-600">${purchase.amountPaid.toLocaleString()}</td>
-                  <td className="p-4 text-right text-orange-600">${purchase.balance.toLocaleString()}</td>
+                  <td className="p-4 text-right font-semibold">MRU {purchase.total.toLocaleString()}</td>
+                  <td className="p-4 text-right text-green-600">MRU {purchase.amountPaid.toLocaleString()}</td>
+                  <td className="p-4 text-right text-orange-600">MRU {purchase.balance.toLocaleString()}</td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleView(purchase)}>

@@ -84,7 +84,7 @@ export default function GeneralLedger() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Current Balance</p>
-                  <p className="font-semibold text-lg">${account.balance.toLocaleString()}</p>
+                  <p className="font-semibold text-lg">MRU {account.balance.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -118,13 +118,13 @@ export default function GeneralLedger() {
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell className="font-mono text-sm">{transaction.reference}</TableCell>
                       <TableCell className="text-right font-medium">
-                        {transaction.debit > 0 ? `$${transaction.debit.toLocaleString()}` : '-'}
+                        {transaction.debit > 0 ? `MRU ${transaction.debit.toLocaleString()}` : '-'}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {transaction.credit > 0 ? `$${transaction.credit.toLocaleString()}` : '-'}
+                        {transaction.credit > 0 ? `MRU ${transaction.credit.toLocaleString()}` : '-'}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        ${transaction.balance.toLocaleString()}
+                        MRU {transaction.balance.toLocaleString()}
                       </TableCell>
                     </TableRow>
                   ))

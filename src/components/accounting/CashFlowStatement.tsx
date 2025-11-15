@@ -53,19 +53,19 @@ export default function CashFlowStatement() {
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Cash from Sales</span>
                 <span className="font-medium text-green-600">
-                  ${mockTransactions.filter(t => t.type === 'sale' && t.status === 'completed').reduce((s, t) => s + t.amount, 0).toLocaleString()}
+                  MRU {mockTransactions.filter(t => t.type === 'sale' && t.status === 'completed').reduce((s, t) => s + t.amount, 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Cash for Expenses</span>
                 <span className="font-medium text-red-600">
-                  -${mockTransactions.filter(t => t.type === 'expense' && t.status === 'completed').reduce((s, t) => s + t.amount, 0).toLocaleString()}
+                  -MRU {mockTransactions.filter(t => t.type === 'expense' && t.status === 'completed').reduce((s, t) => s + t.amount, 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Net Cash from Operating Activities</span>
                 <span className={operatingCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  ${operatingCashFlow.toLocaleString()}
+                  MRU {operatingCashFlow.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -78,13 +78,13 @@ export default function CashFlowStatement() {
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Equipment & Asset Purchases</span>
                 <span className="font-medium text-red-600">
-                  ${Math.abs(investingCashFlow).toLocaleString()}
+                  MRU {Math.abs(investingCashFlow).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Net Cash from Investing Activities</span>
                 <span className={investingCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  ${investingCashFlow.toLocaleString()}
+                  MRU {investingCashFlow.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -96,12 +96,12 @@ export default function CashFlowStatement() {
             <div className="space-y-2">
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Loans & Transfers</span>
-                <span className="font-medium">${Math.abs(financingCashFlow).toLocaleString()}</span>
+                <span className="font-medium">MRU {Math.abs(financingCashFlow).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Net Cash from Financing Activities</span>
                 <span className={financingCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  ${financingCashFlow.toLocaleString()}
+                  MRU {financingCashFlow.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -111,17 +111,17 @@ export default function CashFlowStatement() {
           <div className="border-t pt-4 space-y-2">
             <div className="flex justify-between items-center py-2 px-4 rounded">
               <span className="font-medium">Beginning Cash Balance</span>
-              <span className="font-medium">${beginningCash.toLocaleString()}</span>
+              <span className="font-medium">MRU {beginningCash.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center py-2 px-4 rounded">
               <span className="font-medium">Net Change in Cash</span>
               <span className={`font-medium ${netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${netCashFlow.toLocaleString()}
+                MRU {netCashFlow.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center py-3 px-4 bg-primary/10 rounded-lg">
               <span className="text-xl font-bold">Ending Cash Balance</span>
-              <span className="text-2xl font-bold">${endingCash.toLocaleString()}</span>
+              <span className="text-2xl font-bold">MRU {endingCash.toLocaleString()}</span>
             </div>
           </div>
         </CardContent>

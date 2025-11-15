@@ -43,12 +43,12 @@ export default function BalanceSheet() {
                   <span className="text-sm" style={{ paddingLeft: `${(account.code.length - 4) * 12}px` }}>
                     {account.name}
                   </span>
-                  <span className="font-medium">${account.balance.toLocaleString()}</span>
+                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Assets</span>
-                <span className="text-lg">${totalAssets.toLocaleString()}</span>
+                <span className="text-lg">MRU {totalAssets.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -62,12 +62,12 @@ export default function BalanceSheet() {
                   <span className="text-sm" style={{ paddingLeft: `${(account.code.length - 4) * 12}px` }}>
                     {account.name}
                   </span>
-                  <span className="font-medium">${account.balance.toLocaleString()}</span>
+                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Liabilities</span>
-                <span className="text-lg">${totalLiabilities.toLocaleString()}</span>
+                <span className="text-lg">MRU {totalLiabilities.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -79,12 +79,12 @@ export default function BalanceSheet() {
               {equity.map((account) => (
                 <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                   <span className="text-sm">{account.name}</span>
-                  <span className="font-medium">${account.balance.toLocaleString()}</span>
+                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Equity</span>
-                <span className="text-lg">${totalEquity.toLocaleString()}</span>
+                <span className="text-lg">MRU {totalEquity.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function BalanceSheet() {
           <div className="border-t pt-4">
             <div className="flex justify-between items-center py-3 px-4 bg-primary/10 rounded-lg">
               <span className="text-xl font-bold">Total Liabilities & Equity</span>
-              <span className="text-2xl font-bold">${(totalLiabilities + totalEquity).toLocaleString()}</span>
+              <span className="text-2xl font-bold">MRU {(totalLiabilities + totalEquity).toLocaleString()}</span>
             </div>
             <p className="text-sm text-muted-foreground mt-2 text-center">
               {totalAssets === totalLiabilities + totalEquity ? '✓ Balanced' : '⚠ Not Balanced'}

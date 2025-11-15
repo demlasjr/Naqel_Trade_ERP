@@ -28,7 +28,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold">MRU {totalRevenue.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
             {statusCounts.paid || 0} paid orders
           </p>
@@ -41,7 +41,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <TrendingUp className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">${paidRevenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold text-green-600">MRU {paidRevenue.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
             {((paidRevenue / totalRevenue) * 100 || 0).toFixed(1)}% of total
           </p>
@@ -54,7 +54,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <TrendingDown className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-orange-600">${outstandingBalance.toFixed(2)}</div>
+          <div className="text-2xl font-bold text-orange-600">MRU {outstandingBalance.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
             {statusCounts.invoiced || 0} invoiced orders
           </p>
@@ -80,7 +80,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${averageOrderValue.toFixed(2)}</div>
+          <div className="text-2xl font-bold">MRU {averageOrderValue.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
             Per order average
           </p>

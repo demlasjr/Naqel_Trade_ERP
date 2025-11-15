@@ -51,7 +51,7 @@ export function EmployeeAnalytics({ employees, departments }: EmployeeAnalyticsP
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${Math.round(avgSalary).toLocaleString()}
+            MRU {Math.round(avgSalary).toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">per employee</p>
         </CardContent>
@@ -64,7 +64,7 @@ export function EmployeeAnalytics({ employees, departments }: EmployeeAnalyticsP
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${Math.round(totalPayroll).toLocaleString()}
+            MRU {Math.round(totalPayroll).toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">monthly</p>
         </CardContent>

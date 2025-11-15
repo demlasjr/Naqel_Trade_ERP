@@ -114,13 +114,13 @@ export function ProductDetailDialog({ product, open, onOpenChange }: ProductDeta
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Cost Price</p>
                 <p className="text-xl font-semibold">
-                  ${product.costPrice.toFixed(2)}
+                  MRU {product.costPrice.toFixed(2)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Selling Price</p>
                 <p className="text-xl font-semibold text-primary">
-                  ${product.sellingPrice.toFixed(2)}
+                  MRU {product.sellingPrice.toFixed(2)}
                 </p>
               </div>
               <div>

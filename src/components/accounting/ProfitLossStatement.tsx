@@ -42,12 +42,12 @@ export default function ProfitLossStatement() {
               {revenue.map((account) => (
                 <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                   <span className="text-sm">{account.name}</span>
-                  <span className="font-medium">${account.balance.toLocaleString()}</span>
+                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Revenue</span>
-                <span className="text-lg">${totalRevenue.toLocaleString()}</span>
+                <span className="text-lg">MRU {totalRevenue.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -59,12 +59,12 @@ export default function ProfitLossStatement() {
               {expenses.map((account) => (
                 <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                   <span className="text-sm">{account.name}</span>
-                  <span className="font-medium">${account.balance.toLocaleString()}</span>
+                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Expenses</span>
-                <span className="text-lg">${totalExpenses.toLocaleString()}</span>
+                <span className="text-lg">MRU {totalExpenses.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function ProfitLossStatement() {
               </div>
               <div className="text-right">
                 <div className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${Math.abs(netIncome).toLocaleString()}
+                  MRU {Math.abs(netIncome).toLocaleString()}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Net Margin: {netMargin.toFixed(2)}%

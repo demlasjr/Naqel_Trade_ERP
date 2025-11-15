@@ -92,8 +92,8 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
                     <tr key={item.id} className="border-t">
                       <td className="p-3">{item.productName}</td>
                       <td className="p-3 text-right">{item.quantity}</td>
-                      <td className="p-3 text-right">${item.unitPrice.toFixed(2)}</td>
-                      <td className="p-3 text-right font-semibold">${item.total.toFixed(2)}</td>
+                      <td className="p-3 text-right">MRU {item.unitPrice.toFixed(2)}</td>
+                      <td className="p-3 text-right font-semibold">MRU {item.total.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -106,24 +106,24 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold">${purchase.subtotal.toFixed(2)}</span>
+              <span className="font-semibold">MRU {purchase.subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tax ({purchase.taxRate}%)</span>
-              <span className="font-semibold">${purchase.tax.toFixed(2)}</span>
+              <span className="font-semibold">MRU {purchase.tax.toFixed(2)}</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg">
               <span className="font-semibold">Total</span>
-              <span className="font-bold">${purchase.total.toFixed(2)}</span>
+              <span className="font-bold">MRU {purchase.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-green-600 dark:text-green-400">
               <span>Amount Paid</span>
-              <span className="font-semibold">${purchase.amountPaid.toFixed(2)}</span>
+              <span className="font-semibold">MRU {purchase.amountPaid.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-orange-600 dark:text-orange-400">
               <span>Balance Due</span>
-              <span className="font-semibold">${purchase.balance.toFixed(2)}</span>
+              <span className="font-semibold">MRU {purchase.balance.toFixed(2)}</span>
             </div>
           </div>
 
