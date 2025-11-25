@@ -23,10 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDashboardKPIs } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState("30");
+  const { kpis, isLoading } = useDashboardKPIs(dateRange);
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -55,74 +57,85 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Total Revenue"
-          value="MRU 847,500"
-          description="Compared to previous period"
-          icon={DollarSign}
-          iconColor="bg-success"
-          trend={{ value: "+12.5%", isPositive: true }}
-        />
-        <KPICard
-          title="Total Expenses"
-          value="MRU 420,000"
-          description="Operational costs"
-          icon={CreditCard}
-          iconColor="bg-destructive"
-          trend={{ value: "+8.2%", isPositive: true }}
-        />
-        <KPICard
-          title="Net Profit"
-          value="MRU 427,500"
-          description="50.4% profit margin"
-          icon={TrendingUp}
-          iconColor="bg-primary"
-          trend={{ value: "+18.7%", isPositive: true }}
-        />
-        <KPICard
-          title="Inventory Value"
-          value="MRU 285,000"
-          description="Current stock valuation"
-          icon={Package}
-          iconColor="bg-chart-4"
-          trend={{ value: "-2.1%", isPositive: false }}
-        />
-      </div>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground">Loading dashboard data...</div>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Total Revenue"
+              value={`MRU ${kpis?.totalRevenue.toLocaleString() || 0}`}
+              description="Compared to previous period"
+              icon={DollarSign}
+              iconColor="bg-success"
+              trend={{ 
+                value: `${kpis?.revenueTrend >= 0 ? '+' : ''}${kpis?.revenueTrend.toFixed(1)}%`, 
+                isPositive: kpis?.revenueTrend >= 0 
+              }}
+            />
+            <KPICard
+              title="Total Expenses"
+              value={`MRU ${kpis?.totalExpenses.toLocaleString() || 0}`}
+              description="Operational costs"
+              icon={CreditCard}
+              iconColor="bg-destructive"
+              trend={{ 
+                value: `${kpis?.expensesTrend >= 0 ? '+' : ''}${kpis?.expensesTrend.toFixed(1)}%`, 
+                isPositive: kpis?.expensesTrend < 0 
+              }}
+            />
+            <KPICard
+              title="Net Profit"
+              value={`MRU ${kpis?.netProfit.toLocaleString() || 0}`}
+              description={`${((kpis?.netProfit / (kpis?.totalRevenue || 1)) * 100).toFixed(1)}% profit margin`}
+              icon={TrendingUp}
+              iconColor="bg-primary"
+              trend={{ 
+                value: `${kpis?.profitTrend >= 0 ? '+' : ''}${kpis?.profitTrend.toFixed(1)}%`, 
+                isPositive: kpis?.profitTrend >= 0 
+              }}
+            />
+            <KPICard
+              title="Inventory Value"
+              value={`MRU ${kpis?.inventoryValue.toLocaleString() || 0}`}
+              description="Current stock valuation"
+              icon={Package}
+              iconColor="bg-chart-4"
+            />
+          </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Low Stock Items"
-          value="4"
-          description="Require immediate attention"
-          icon={AlertTriangle}
-          iconColor="bg-warning"
-        />
-        <KPICard
-          title="Total Transactions"
-          value="247"
-          description="All recorded activities"
-          icon={Receipt}
-          iconColor="bg-chart-1"
-          trend={{ value: "+15.3%", isPositive: true }}
-        />
-        <KPICard
-          title="Avg Order Value"
-          value="MRU 3,435"
-          description="Per transaction average"
-          icon={ShoppingCart}
-          iconColor="bg-success"
-          trend={{ value: "+5.8%", isPositive: true }}
-        />
-        <KPICard
-          title="Active Products"
-          value="142"
-          description="In current inventory"
-          icon={Box}
-          iconColor="bg-primary"
-          trend={{ value: "+3", isPositive: true }}
-        />
-      </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Low Stock Items"
+              value={kpis?.lowStockCount || 0}
+              description="Require immediate attention"
+              icon={AlertTriangle}
+              iconColor="bg-warning"
+            />
+            <KPICard
+              title="Total Transactions"
+              value={kpis?.totalTransactions || 0}
+              description="All recorded activities"
+              icon={Receipt}
+              iconColor="bg-chart-1"
+            />
+            <KPICard
+              title="Avg Order Value"
+              value={`MRU ${kpis?.avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 }) || 0}`}
+              description="Per transaction average"
+              icon={ShoppingCart}
+              iconColor="bg-success"
+            />
+            <KPICard
+              title="Active Products"
+              value={kpis?.activeProducts || 0}
+              description="In current inventory"
+              icon={Box}
+              iconColor="bg-primary"
+            />
+          </div>
+        </>
+      )}
 
       {/* Charts Section */}
       <div className="grid gap-4 md:grid-cols-2">

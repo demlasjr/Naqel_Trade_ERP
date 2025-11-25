@@ -1,44 +1,60 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const lowStockItems = [
-  {
-    id: "PRD-001",
-    name: "Premium Office Chair",
-    sku: "CHAIR-001",
-    currentStock: 3,
-    minStock: 10,
-    category: "Furniture",
-  },
-  {
-    id: "PRD-002",
-    name: "Wireless Mouse",
-    sku: "MOUSE-001",
-    currentStock: 5,
-    minStock: 20,
-    category: "Electronics",
-  },
-  {
-    id: "PRD-003",
-    name: "A4 Paper Ream",
-    sku: "PAPER-001",
-    currentStock: 8,
-    minStock: 50,
-    category: "Supplies",
-  },
-  {
-    id: "PRD-004",
-    name: "USB-C Cable",
-    sku: "CABLE-001",
-    currentStock: 2,
-    minStock: 15,
-    category: "Electronics",
-  },
-];
+interface LowStockItem {
+  id: string;
+  name: string;
+  sku: string;
+  currentStock: number;
+  minStock: number;
+  category: string;
+}
 
 export function LowStockAlerts() {
+  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLowStockItems() {
+      try {
+        const { data: products } = await supabase
+          .from('products')
+          .select(`
+            id,
+            name,
+            sku,
+            current_stock,
+            reorder_level,
+            product_categories (name)
+          `)
+          .lte('current_stock', supabase.rpc('reorder_level'))
+          .eq('status', 'active')
+          .order('current_stock', { ascending: true })
+          .limit(4);
+
+        const formattedItems: LowStockItem[] = products?.map(product => ({
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          currentStock: product.current_stock,
+          minStock: product.reorder_level,
+          category: (product.product_categories as any)?.name || 'Uncategorized',
+        })) || [];
+
+        setLowStockItems(formattedItems);
+      } catch (error) {
+        console.error('Error fetching low stock items:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchLowStockItems();
+  }, []);
+
   return (
     <Card>
       <CardHeader>
@@ -48,8 +64,13 @@ export function LowStockAlerts() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {lowStockItems.map((item) => (
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        ) : lowStockItems.length === 0 ? (
+          <div className="text-sm text-muted-foreground">No low stock items</div>
+        ) : (
+          <div className="space-y-3">
+            {lowStockItems.map((item) => (
             <div
               key={item.id}
               className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
@@ -82,7 +103,8 @@ export function LowStockAlerts() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

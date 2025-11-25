@@ -1,59 +1,93 @@
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
-const transactions = [
-  {
-    id: "TRX-001",
-    type: "sale",
-    customer: "Acme Corp",
-    amount: 12500,
-    status: "completed",
-    date: "2024-11-08",
-  },
-  {
-    id: "TRX-002",
-    type: "purchase",
-    vendor: "Office Supplies Co",
-    amount: -3200,
-    status: "completed",
-    date: "2024-11-08",
-  },
-  {
-    id: "TRX-003",
-    type: "sale",
-    customer: "Tech Solutions Ltd",
-    amount: 8900,
-    status: "pending",
-    date: "2024-11-07",
-  },
-  {
-    id: "TRX-004",
-    type: "purchase",
-    vendor: "Equipment Rentals Inc",
-    amount: -5600,
-    status: "completed",
-    date: "2024-11-07",
-  },
-  {
-    id: "TRX-005",
-    type: "sale",
-    customer: "Global Industries",
-    amount: 15800,
-    status: "completed",
-    date: "2024-11-06",
-  },
-];
+interface Transaction {
+  id: string;
+  type: string;
+  name: string;
+  amount: number;
+  status: string;
+  date: string;
+}
 
 export function RecentTransactions() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecentTransactions() {
+      try {
+        // Fetch recent sales
+        const { data: salesData } = await supabase
+          .from('sales_orders')
+          .select('id, customer_name, total_amount, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        // Fetch recent purchases
+        const { data: purchasesData } = await supabase
+          .from('purchase_orders')
+          .select('id, vendor_name, total_amount, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(2);
+
+        const formattedTransactions: Transaction[] = [];
+
+        salesData?.forEach(sale => {
+          formattedTransactions.push({
+            id: sale.id,
+            type: 'sale',
+            name: sale.customer_name || 'Unknown Customer',
+            amount: Number(sale.total_amount),
+            status: sale.status,
+            date: format(new Date(sale.created_at), 'yyyy-MM-dd'),
+          });
+        });
+
+        purchasesData?.forEach(purchase => {
+          formattedTransactions.push({
+            id: purchase.id,
+            type: 'purchase',
+            name: purchase.vendor_name || 'Unknown Vendor',
+            amount: -Number(purchase.total_amount),
+            status: purchase.status,
+            date: format(new Date(purchase.created_at), 'yyyy-MM-dd'),
+          });
+        });
+
+        // Sort by date
+        formattedTransactions.sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        setTransactions(formattedTransactions.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching recent transactions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRecentTransactions();
+  }, []);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {transactions.map((transaction) => (
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        ) : transactions.length === 0 ? (
+          <div className="text-sm text-muted-foreground">No transactions found</div>
+        ) : (
+          <div className="space-y-3">
+            {transactions.map((transaction) => (
             <div
               key={transaction.id}
               className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
@@ -74,10 +108,10 @@ export function RecentTransactions() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">
-                    {transaction.customer || transaction.vendor}
+                    {transaction.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {transaction.id} • {transaction.date}
+                    {transaction.id.slice(0, 8)} • {transaction.date}
                   </p>
                 </div>
               </div>
@@ -100,7 +134,8 @@ export function RecentTransactions() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

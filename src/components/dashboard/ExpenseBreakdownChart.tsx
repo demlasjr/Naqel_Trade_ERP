@@ -7,15 +7,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-
-const chartData = [
-  { category: "Salaries", value: 125000, fill: "hsl(var(--chart-1))" },
-  { category: "Rent", value: 45000, fill: "hsl(var(--chart-2))" },
-  { category: "Utilities", value: 28000, fill: "hsl(var(--chart-3))" },
-  { category: "Marketing", value: 67000, fill: "hsl(var(--chart-4))" },
-  { category: "Supplies", value: 42000, fill: "hsl(var(--chart-5))" },
-  { category: "Other", value: 113000, fill: "hsl(var(--muted))" },
-];
+import { useExpenseBreakdown } from "@/hooks/useChartData";
 
 const chartConfig = {
   value: {
@@ -48,13 +40,19 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ExpenseBreakdownChart() {
+  const { expenseData, isLoading } = useExpenseBreakdown();
+
+  if (isLoading) {
+    return <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">Loading chart data...</div>;
+  }
+
   return (
     <ChartContainer config={chartConfig} className="h-[300px] w-full">
       <PieChart>
         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
         <ChartLegend content={<ChartLegendContent />} />
         <Pie
-          data={chartData}
+          data={expenseData}
           dataKey="value"
           nameKey="category"
           cx="50%"
@@ -63,7 +61,7 @@ export function ExpenseBreakdownChart() {
           outerRadius={100}
           paddingAngle={2}
         >
-          {chartData.map((entry, index) => (
+          {expenseData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.fill} />
           ))}
         </Pie>
