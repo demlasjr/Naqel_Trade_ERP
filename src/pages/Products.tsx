@@ -9,13 +9,12 @@ import { ProductFilters } from "@/components/products/ProductFilters";
 import { ProductDetailDialog } from "@/components/products/ProductDetailDialog";
 import { ProductFormDialog } from "@/components/products/ProductFormDialog";
 import { ProductBulkActionsBar } from "@/components/products/ProductBulkActionsBar";
-import { mockProducts } from "@/data/mockProducts";
 import { Product, ProductFilters as Filters, ProductViewMode } from "@/types/product";
-import { useToast } from "@/hooks/use-toast";
+import { useProducts } from "@/hooks/useProducts";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function Products() {
-  const { toast } = useToast();
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const { products, loading, createProduct, updateProduct, deleteProducts, bulkUpdateStatus } = useProducts();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
@@ -98,71 +97,52 @@ export default function Products() {
     setShowFormDialog(true);
   };
 
-  const handleSave = (productData: Partial<Product>) => {
-    if (editProduct) {
-      setProducts(
-        products.map((p) =>
-          p.id === editProduct.id ? { ...p, ...productData, updatedAt: new Date().toISOString() } : p
-        )
-      );
-    } else {
-      const newProduct: Product = {
-        id: `PROD-${String(products.length + 1).padStart(3, "0")}`,
-        createdBy: "Current User",
-        createdAt: new Date().toISOString(),
-        ...productData,
-      } as Product;
-      setProducts([newProduct, ...products]);
+  const handleSave = async (productData: Partial<Product>) => {
+    try {
+      if (editProduct) {
+        await updateProduct(editProduct.id, productData);
+      } else {
+        await createProduct(productData);
+      }
+    } catch (error) {
+      // Error handling is done in the hook
     }
   };
 
-  const handleActivate = () => {
-    setProducts(
-      products.map((p) =>
-        selectedIds.includes(p.id) ? { ...p, status: "active" } : p
-      )
-    );
-    toast({
-      title: "Products Activated",
-      description: `${selectedIds.length} product(s) activated.`,
-    });
-    setSelectedIds([]);
+  const handleActivate = async () => {
+    try {
+      await bulkUpdateStatus(selectedIds, "active");
+      setSelectedIds([]);
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
-  const handleDeactivate = () => {
-    setProducts(
-      products.map((p) =>
-        selectedIds.includes(p.id) ? { ...p, status: "inactive" } : p
-      )
-    );
-    toast({
-      title: "Products Deactivated",
-      description: `${selectedIds.length} product(s) deactivated.`,
-    });
-    setSelectedIds([]);
+  const handleDeactivate = async () => {
+    try {
+      await bulkUpdateStatus(selectedIds, "inactive");
+      setSelectedIds([]);
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
-  const handleDiscontinue = () => {
-    setProducts(
-      products.map((p) =>
-        selectedIds.includes(p.id) ? { ...p, status: "discontinued" } : p
-      )
-    );
-    toast({
-      title: "Products Discontinued",
-      description: `${selectedIds.length} product(s) discontinued.`,
-    });
-    setSelectedIds([]);
+  const handleDiscontinue = async () => {
+    try {
+      await bulkUpdateStatus(selectedIds, "discontinued");
+      setSelectedIds([]);
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
-  const handleDelete = () => {
-    setProducts(products.filter((p) => !selectedIds.includes(p.id)));
-    toast({
-      title: "Products Deleted",
-      description: `${selectedIds.length} product(s) deleted.`,
-      variant: "destructive",
-    });
-    setSelectedIds([]);
+  const handleDelete = async () => {
+    try {
+      await deleteProducts(selectedIds);
+      setSelectedIds([]);
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
   const handleExport = () => {
@@ -187,14 +167,9 @@ export default function Products() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `products-export.csv`;
+    a.download = `products-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Export Successful",
-      description: `Exported ${filteredProducts.length} products to CSV.`,
-    });
   };
 
   const getStatusVariant = (status: string) => {
@@ -219,6 +194,14 @@ export default function Products() {
     }
     return <Badge variant="outline">In Stock</Badge>;
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

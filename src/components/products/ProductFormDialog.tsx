@@ -15,7 +15,7 @@ interface ProductFormDialogProps {
   product: Product | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (product: Partial<Product>) => void;
+  onSave: (product: Partial<Product>) => Promise<void>;
 }
 
 export function ProductFormDialog({ product, open, onOpenChange, onSave }: ProductFormDialogProps) {
@@ -30,19 +30,34 @@ export function ProductFormDialog({ product, open, onOpenChange, onSave }: Produ
 
   useEffect(() => {
     if (open) {
-      resetForm(product || {
+      // Map Product to form data
+      const formData = product ? {
+        sku: product.sku,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        status: product.status as "active" | "inactive" | "discontinued",
+        currentStock: product.stockQuantity,
+        reorderLevel: product.lowStockThreshold,
+        unit: product.unit,
+        costPrice: product.costPrice,
+        sellingPrice: product.sellingPrice,
+        supplier: product.supplierName || "",
+      } : {
         sku: "",
         name: "",
         description: "",
         category: "other",
-        status: "active",
+        status: "active" as "active" | "inactive" | "discontinued",
         currentStock: 0,
         reorderLevel: 10,
         unit: "piece",
         costPrice: 0,
         sellingPrice: 0,
         supplier: "",
-      });
+      };
+      
+      resetForm(formData);
     }
   }, [product, open, resetForm]);
 
@@ -59,7 +74,7 @@ export function ProductFormDialog({ product, open, onOpenChange, onSave }: Produ
     handleChange("sellingPrice", value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const result = validateForm();
@@ -68,11 +83,28 @@ export function ProductFormDialog({ product, open, onOpenChange, onSave }: Produ
       return;
     }
 
-    onSave(data as Partial<Product>);
-    toast.success(
-      product ? "Product updated successfully" : "Product created successfully"
-    );
-    onOpenChange(false);
+    // Map form data to Product type
+    const productData: Partial<Product> = {
+      sku: data.sku,
+      name: data.name,
+      description: data.description,
+      category: data.category as any,
+      status: data.status as any,
+      stockQuantity: data.currentStock,
+      lowStockThreshold: data.reorderLevel,
+      reorderPoint: data.reorderLevel,
+      unit: data.unit,
+      costPrice: data.costPrice,
+      sellingPrice: data.sellingPrice,
+      supplierName: data.supplier,
+    };
+
+    try {
+      await onSave(productData);
+      onOpenChange(false);
+    } catch (error) {
+      // Error is handled in the parent component
+    }
   };
 
   const markup = calculateMarkup(data.costPrice || 0, data.sellingPrice || 0);
