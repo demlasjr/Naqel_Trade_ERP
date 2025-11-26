@@ -9,11 +9,11 @@ import { SalesDetailDialog } from "@/components/sales/SalesDetailDialog";
 import { SalesFormDialog } from "@/components/sales/SalesFormDialog";
 import { SalesBulkActionsBar } from "@/components/sales/SalesBulkActionsBar";
 import { SalesAnalytics } from "@/components/sales/SalesAnalytics";
-import { mockSales } from "@/data/mockSales";
-import { mockCustomers } from "@/data/mockCustomers";
-import { mockProducts } from "@/data/mockProducts";
 import { SalesOrder, SalesFilters as SalesFiltersType } from "@/types/sale";
-import { useToast } from "@/hooks/use-toast";
+import { useSales } from "@/hooks/useSales";
+import { useCustomers } from "@/hooks/useCustomers";
+import { useProducts } from "@/hooks/useProducts";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
 
 const statusColors = {
@@ -25,8 +25,9 @@ const statusColors = {
 };
 
 export default function Sales() {
-  const { toast } = useToast();
-  const [sales, setSales] = useState<SalesOrder[]>(mockSales);
+  const { sales, loading: salesLoading, createSalesOrder, updateSalesOrder, deleteSalesOrders, bulkUpdateStatus } = useSales();
+  const { customers, loading: customersLoading } = useCustomers();
+  const { products, loading: productsLoading } = useProducts();
   const [selectedSale, setSelectedSale] = useState<SalesOrder | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
@@ -75,20 +76,15 @@ export default function Sales() {
     setShowFormDialog(true);
   };
 
-  const handleSave = (saleData: Partial<SalesOrder>) => {
-    if (selectedSale) {
-      setSales(sales.map((s) => (s.id === selectedSale.id ? { ...s, ...saleData, updatedAt: new Date().toISOString() } : s)));
-      toast({ title: "Success", description: "Sales order updated successfully" });
-    } else {
-      const newSale: SalesOrder = {
-        id: Date.now().toString(),
-        orderNumber: `SO-2024-${String(sales.length + 1).padStart(3, "0")}`,
-        ...saleData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as SalesOrder;
-      setSales([newSale, ...sales]);
-      toast({ title: "Success", description: "Sales order created successfully" });
+  const handleSave = async (saleData: Partial<SalesOrder>) => {
+    try {
+      if (selectedSale) {
+        await updateSalesOrder(selectedSale.id, saleData);
+      } else {
+        await createSalesOrder(saleData);
+      }
+    } catch (error) {
+      // Error handled in hook
     }
   };
 
@@ -110,22 +106,31 @@ export default function Sales() {
     setSelectedIds(newSelected);
   };
 
-  const handleBulkConfirm = () => {
-    setSales(sales.map((s) => (selectedIds.has(s.id) && s.status === "draft" ? { ...s, status: "confirmed" as const } : s)));
-    toast({ title: "Success", description: `${selectedIds.size} order(s) confirmed` });
-    setSelectedIds(new Set());
+  const handleBulkConfirm = async () => {
+    try {
+      await bulkUpdateStatus(Array.from(selectedIds), "confirmed");
+      setSelectedIds(new Set());
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
-  const handleBulkCancel = () => {
-    setSales(sales.map((s) => (selectedIds.has(s.id) ? { ...s, status: "cancelled" as const } : s)));
-    toast({ title: "Success", description: `${selectedIds.size} order(s) cancelled` });
-    setSelectedIds(new Set());
+  const handleBulkCancel = async () => {
+    try {
+      await bulkUpdateStatus(Array.from(selectedIds), "cancelled");
+      setSelectedIds(new Set());
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
-  const handleBulkDelete = () => {
-    setSales(sales.filter((s) => !selectedIds.has(s.id)));
-    toast({ title: "Success", description: `${selectedIds.size} order(s) deleted` });
-    setSelectedIds(new Set());
+  const handleBulkDelete = async () => {
+    try {
+      await deleteSalesOrders(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
   const handleBulkExport = () => {
@@ -141,9 +146,8 @@ export default function Sales() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "sales-orders.csv";
+    a.download = `sales-orders-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    toast({ title: "Success", description: "Sales orders exported successfully" });
   };
 
   const handleExportAll = () => {
@@ -158,10 +162,17 @@ export default function Sales() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "all-sales-orders.csv";
+    a.download = `sales-orders-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    toast({ title: "Success", description: "All sales orders exported successfully" });
   };
+
+  if (salesLoading || customersLoading || productsLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -184,7 +195,7 @@ export default function Sales() {
 
       <SalesAnalytics sales={filteredSales} />
 
-      <SalesFilters filters={filters} onFilterChange={setFilters} customers={mockCustomers} />
+      <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
 
       <Card>
         <div className="overflow-x-auto">
@@ -255,8 +266,8 @@ export default function Sales() {
         open={showFormDialog}
         onOpenChange={setShowFormDialog}
         onSave={handleSave}
-        customers={mockCustomers}
-        products={mockProducts}
+        customers={customers}
+        products={products}
       />
       <SalesBulkActionsBar
         selectedCount={selectedIds.size}

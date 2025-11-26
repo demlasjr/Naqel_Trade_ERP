@@ -15,7 +15,7 @@ interface SalesFormDialogProps {
   sale: SalesOrder | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (sale: Partial<SalesOrder>) => void;
+  onSave: (sale: Partial<SalesOrder>) => Promise<void>;
   customers: Customer[];
   products: Product[];
 }
@@ -124,7 +124,7 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
     setFormData({ ...formData, lineItems: items });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.customerId) {
       toast({ title: "Error", description: "Please select a customer", variant: "destructive" });
       return;
@@ -145,8 +145,12 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
       balance: totals.total - (sale?.paidAmount || 0),
     };
 
-    onSave(saleData);
-    onOpenChange(false);
+    try {
+      await onSave(saleData);
+      onOpenChange(false);
+    } catch (error) {
+      // Error handled in parent
+    }
   };
 
   return (
