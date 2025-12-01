@@ -8,12 +8,12 @@ import { PurchaseDetailDialog } from "@/components/purchases/PurchaseDetailDialo
 import { PurchaseFormDialog } from "@/components/purchases/PurchaseFormDialog";
 import { PurchaseBulkActionsBar } from "@/components/purchases/PurchaseBulkActionsBar";
 import { PurchaseAnalytics } from "@/components/purchases/PurchaseAnalytics";
-import { mockPurchases } from "@/data/mockPurchases";
-import { mockVendors } from "@/data/mockVendors";
-import { mockProducts } from "@/data/mockProducts";
 import { PurchaseOrder, PurchaseFilters as PurchaseFiltersType } from "@/types/purchase";
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { usePurchases } from "@/hooks/usePurchases";
+import { useVendors } from "@/hooks/useVendors";
+import { useProducts } from "@/hooks/useProducts";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 const statusStyles = {
   draft: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100",
@@ -24,7 +24,10 @@ const statusStyles = {
 };
 
 export default function Purchases() {
-  const [purchases, setPurchases] = useState<PurchaseOrder[]>(mockPurchases);
+  const { purchases, isLoading, createPurchase, updatePurchase, deletePurchases, bulkUpdateStatus } = usePurchases();
+  const { data: vendors = [], isLoading: isLoadingVendors } = useVendors();
+  const { products, loading: isLoadingProducts } = useProducts();
+  
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseOrder | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -38,6 +41,10 @@ export default function Purchases() {
     amountMin: "",
     amountMax: "",
   });
+
+  if (isLoading || isLoadingVendors || isLoadingProducts) {
+    return <LoadingSpinner />;
+  }
 
   const filteredPurchases = purchases.filter((purchase) => {
     if (filters.search && !purchase.orderNumber.toLowerCase().includes(filters.search.toLowerCase()) &&
@@ -68,21 +75,11 @@ export default function Purchases() {
     setIsFormOpen(true);
   };
 
-  const handleSave = (purchaseData: Partial<PurchaseOrder>) => {
+  const handleSave = async (purchaseData: Partial<PurchaseOrder>) => {
     if (selectedPurchase) {
-      setPurchases(purchases.map((p) => (p.id === selectedPurchase.id ? { ...p, ...purchaseData } : p)));
-      toast.success("Purchase order updated successfully");
+      await updatePurchase({ id: selectedPurchase.id, data: purchaseData });
     } else {
-      const newPurchase: PurchaseOrder = {
-        id: `po-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        createdBy: "admin",
-        amountPaid: 0,
-        balance: purchaseData.total || 0,
-        ...purchaseData,
-      } as PurchaseOrder;
-      setPurchases([newPurchase, ...purchases]);
-      toast.success("Purchase order created successfully");
+      await createPurchase(purchaseData);
     }
   };
 
@@ -104,34 +101,45 @@ export default function Purchases() {
     }
   };
 
-  const handleBulkMarkOrdered = () => {
-    setPurchases(purchases.map((p) => (selectedIds.has(p.id) ? { ...p, status: "ordered" as const } : p)));
+  const handleBulkMarkOrdered = async () => {
+    await bulkUpdateStatus({ ids: Array.from(selectedIds), status: "ordered" });
     setSelectedIds(new Set());
-    toast.success(`${selectedIds.size} purchase order(s) marked as ordered`);
   };
 
-  const handleBulkMarkReceived = () => {
-    setPurchases(purchases.map((p) => (selectedIds.has(p.id) ? { ...p, status: "received" as const } : p)));
+  const handleBulkMarkReceived = async () => {
+    await bulkUpdateStatus({ 
+      ids: Array.from(selectedIds), 
+      status: "received",
+      updateData: { receivedDate: new Date().toISOString() }
+    });
     setSelectedIds(new Set());
-    toast.success(`${selectedIds.size} purchase order(s) marked as received`);
   };
 
-  const handleBulkMarkPaid = () => {
-    setPurchases(purchases.map((p) => (selectedIds.has(p.id) ? { ...p, status: "paid" as const, amountPaid: p.total, balance: 0 } : p)));
+  const handleBulkMarkPaid = async () => {
+    const updates = purchases
+      .filter(p => selectedIds.has(p.id))
+      .map(p => ({ 
+        amountPaid: p.total, 
+        balance: 0,
+        paymentDate: new Date().toISOString()
+      }));
+    
+    await bulkUpdateStatus({ 
+      ids: Array.from(selectedIds), 
+      status: "paid",
+      updateData: updates[0]
+    });
     setSelectedIds(new Set());
-    toast.success(`${selectedIds.size} purchase order(s) marked as paid`);
   };
 
-  const handleBulkCancel = () => {
-    setPurchases(purchases.map((p) => (selectedIds.has(p.id) ? { ...p, status: "cancelled" as const } : p)));
+  const handleBulkCancel = async () => {
+    await bulkUpdateStatus({ ids: Array.from(selectedIds), status: "cancelled" });
     setSelectedIds(new Set());
-    toast.success(`${selectedIds.size} purchase order(s) cancelled`);
   };
 
-  const handleBulkDelete = () => {
-    setPurchases(purchases.filter((p) => !selectedIds.has(p.id)));
+  const handleBulkDelete = async () => {
+    await deletePurchases(Array.from(selectedIds));
     setSelectedIds(new Set());
-    toast.success(`${selectedIds.size} purchase order(s) deleted`);
   };
 
   const handleBulkExport = () => {
@@ -159,7 +167,6 @@ export default function Purchases() {
     a.href = url;
     a.download = `purchases-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
-    toast.success("Purchase orders exported successfully");
   };
 
   return (
@@ -177,7 +184,7 @@ export default function Purchases() {
 
       <PurchaseAnalytics purchases={purchases} />
 
-      <PurchaseFilters filters={filters} onFiltersChange={setFilters} vendors={mockVendors} />
+      <PurchaseFilters filters={filters} onFiltersChange={setFilters} vendors={vendors} />
 
       <div className="bg-card rounded-lg border">
         <div className="overflow-x-auto">
@@ -250,8 +257,8 @@ export default function Purchases() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSave={handleSave}
-        vendors={mockVendors}
-        products={mockProducts}
+        vendors={vendors}
+        products={products}
       />
 
       <PurchaseBulkActionsBar

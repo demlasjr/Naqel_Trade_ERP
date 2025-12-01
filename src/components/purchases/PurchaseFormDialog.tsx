@@ -14,7 +14,7 @@ interface PurchaseFormDialogProps {
   purchase: PurchaseOrder | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (purchase: Partial<PurchaseOrder>) => void;
+  onSave: (purchase: Partial<PurchaseOrder>) => Promise<void>;
   vendors: Vendor[];
   products: Product[];
 }
@@ -112,11 +112,11 @@ export function PurchaseFormDialog({ purchase, open, onOpenChange, onSave, vendo
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const { subtotal, tax, total } = calculateTotals(formData.lineItems || [], formData.taxRate || 10);
     const amountPaid = formData.amountPaid || 0;
     
-    onSave({
+    await onSave({
       ...formData,
       subtotal,
       tax,
