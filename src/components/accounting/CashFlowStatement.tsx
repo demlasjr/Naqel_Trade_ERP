@@ -8,18 +8,18 @@ export default function CashFlowStatement() {
 
   // Calculate cash flow categories
   const operatingCashFlow = mockTransactions
-    .filter(t => ['sale', 'purchase', 'expense'].includes(t.type) && t.status === 'completed')
+    .filter(t => ['sale', 'purchase', 'expense'].includes(t.type) && t.status === 'posted')
     .reduce((sum, t) => {
       if (t.type === 'sale') return sum + t.amount;
       return sum - t.amount;
     }, 0);
 
   const investingCashFlow = mockTransactions
-    .filter(t => t.type === 'adjustment' && t.status === 'completed')
+    .filter(t => t.type === 'adjustment' && t.status === 'posted')
     .reduce((sum, t) => sum - t.amount, 0);
 
   const financingCashFlow = mockTransactions
-    .filter(t => ['transfer', 'payment'].includes(t.type) && t.status === 'completed')
+    .filter(t => ['transfer', 'payment'].includes(t.type) && t.status === 'posted')
     .reduce((sum, t) => sum + (t.type === 'transfer' ? t.amount : -t.amount), 0);
 
   const netCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow;
@@ -53,13 +53,13 @@ export default function CashFlowStatement() {
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Cash from Sales</span>
                 <span className="font-medium text-green-600">
-                  MRU {mockTransactions.filter(t => t.type === 'sale' && t.status === 'completed').reduce((s, t) => s + t.amount, 0).toLocaleString()}
+                  MRU {mockTransactions.filter(t => t.type === 'sale' && t.status === 'posted').reduce((s, t) => s + t.amount, 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Cash for Expenses</span>
                 <span className="font-medium text-red-600">
-                  -MRU {mockTransactions.filter(t => t.type === 'expense' && t.status === 'completed').reduce((s, t) => s + t.amount, 0).toLocaleString()}
+                  -MRU {mockTransactions.filter(t => t.type === 'expense' && t.status === 'posted').reduce((s, t) => s + t.amount, 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">

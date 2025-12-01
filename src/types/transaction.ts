@@ -1,4 +1,4 @@
-export type TransactionStatus = "pending" | "completed" | "cancelled";
+export type TransactionStatus = "pending" | "posted" | "reconciled" | "void";
 
 export type TransactionType = 
   | "sale" 

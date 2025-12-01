@@ -9,14 +9,16 @@ import { TransactionFilters } from "@/components/transactions/TransactionFilters
 import { TransactionDetailDialog } from "@/components/transactions/TransactionDetailDialog";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { TransactionBulkActionsBar } from "@/components/transactions/TransactionBulkActionsBar";
-import { mockTransactions } from "@/data/mockTransactions";
 import { Transaction, TransactionFilters as Filters } from "@/types/transaction";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useAccounts } from "@/hooks/useAccounts";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function Transactions() {
-  const { toast } = useToast();
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const { transactions, isLoading, createTransaction, updateTransaction, deleteTransactions, bulkUpdateStatus } = useTransactions();
+  const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
+  
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [detailTransaction, setDetailTransaction] = useState<Transaction | null>(null);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
@@ -31,6 +33,10 @@ export default function Transactions() {
     amountMin: "",
     amountMax: "",
   });
+
+  if (isLoading || isLoadingAccounts) {
+    return <LoadingSpinner />;
+  }
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((txn) => {
@@ -90,57 +96,26 @@ export default function Transactions() {
     setShowFormDialog(true);
   };
 
-  const handleSave = (transactionData: Partial<Transaction>) => {
+  const handleSave = async (transactionData: Partial<Transaction>) => {
     if (editTransaction) {
-      setTransactions(
-        transactions.map((txn) =>
-          txn.id === editTransaction.id ? { ...txn, ...transactionData } : txn
-        )
-      );
+      await updateTransaction({ id: editTransaction.id, data: transactionData });
     } else {
-      const newTransaction: Transaction = {
-        id: `TXN-${String(transactions.length + 1).padStart(3, "0")}`,
-        createdBy: "Current User",
-        createdAt: new Date().toISOString(),
-        ...transactionData,
-      } as Transaction;
-      setTransactions([newTransaction, ...transactions]);
+      await createTransaction(transactionData);
     }
   };
 
-  const handleComplete = () => {
-    setTransactions(
-      transactions.map((txn) =>
-        selectedIds.includes(txn.id) ? { ...txn, status: "completed" } : txn
-      )
-    );
-    toast({
-      title: "Transactions Completed",
-      description: `${selectedIds.length} transaction(s) marked as completed.`,
-    });
+  const handleComplete = async () => {
+    await bulkUpdateStatus({ ids: selectedIds, status: "posted" });
     setSelectedIds([]);
   };
 
-  const handleCancelTransactions = () => {
-    setTransactions(
-      transactions.map((txn) =>
-        selectedIds.includes(txn.id) ? { ...txn, status: "cancelled" } : txn
-      )
-    );
-    toast({
-      title: "Transactions Cancelled",
-      description: `${selectedIds.length} transaction(s) cancelled.`,
-    });
+  const handleCancelTransactions = async () => {
+    await bulkUpdateStatus({ ids: selectedIds, status: "void" });
     setSelectedIds([]);
   };
 
-  const handleDelete = () => {
-    setTransactions(transactions.filter((txn) => !selectedIds.includes(txn.id)));
-    toast({
-      title: "Transactions Deleted",
-      description: `${selectedIds.length} transaction(s) deleted.`,
-      variant: "destructive",
-    });
+  const handleDelete = async () => {
+    await deleteTransactions(selectedIds);
     setSelectedIds([]);
   };
 
@@ -169,21 +144,18 @@ export default function Transactions() {
     a.download = `transactions-${format(new Date(), "yyyy-MM-dd")}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Export Successful",
-      description: `Exported ${filteredTransactions.length} transactions to CSV.`,
-    });
   };
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "completed":
+      case "posted":
         return "default";
       case "pending":
         return "secondary";
-      case "cancelled":
+      case "void":
         return "destructive";
+      case "reconciled":
+        return "default";
       default:
         return "outline";
     }
@@ -334,6 +306,7 @@ export default function Transactions() {
         open={showFormDialog}
         onOpenChange={setShowFormDialog}
         onSave={handleSave}
+        accounts={accounts}
       />
     </div>
   );

@@ -10,7 +10,7 @@ export const transactionSchema = z.object({
   accountFrom: z.string().optional(),
   accountTo: z.string().optional(),
   amount: z.number().positive("Amount must be greater than zero").max(999999999, "Amount is too large"),
-  status: z.enum(["pending", "completed", "cancelled"]).default("pending"),
+  status: z.enum(["pending", "posted", "reconciled", "void"]).default("pending"),
   reference: z.string().max(100, "Reference must not exceed 100 characters").optional(),
   notes: z.string().max(1000, "Notes must not exceed 1000 characters").optional(),
 }).refine((data) => {

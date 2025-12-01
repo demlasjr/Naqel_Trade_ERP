@@ -126,7 +126,7 @@ export function RecentTransactions() {
                 </p>
                 <Badge
                   variant={
-                    transaction.status === "completed" ? "default" : "secondary"
+                    transaction.status === "posted" ? "default" : "secondary"
                   }
                 >
                   {transaction.status}

@@ -12,7 +12,8 @@ interface TransactionFormDialogProps {
   transaction: Transaction | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (transaction: Partial<Transaction>) => void;
+  onSave: (transaction: Partial<Transaction>) => Promise<void>;
+  accounts: any[];
 }
 
 export function TransactionFormDialog({ transaction, open, onOpenChange, onSave }: TransactionFormDialogProps) {
