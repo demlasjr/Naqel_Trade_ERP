@@ -34,10 +34,6 @@ export default function Transactions() {
     amountMax: "",
   });
 
-  if (isLoading || isLoadingAccounts) {
-    return <LoadingSpinner />;
-  }
-
   const filteredTransactions = useMemo(() => {
     return transactions.filter((txn) => {
       if (filters.search) {
@@ -64,6 +60,10 @@ export default function Transactions() {
       return true;
     });
   }, [transactions, filters]);
+
+  if (isLoading || isLoadingAccounts) {
+    return <LoadingSpinner />;
+  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
