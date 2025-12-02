@@ -114,15 +114,15 @@ function getStartDate(range: string): string {
   const now = new Date();
   switch (range) {
     case '7':
-      return new Date(now.setDate(now.getDate() - 7)).toISOString();
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     case '30':
-      return new Date(now.setDate(now.getDate() - 30)).toISOString();
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
     case '90':
-      return new Date(now.setDate(now.getDate() - 90)).toISOString();
+      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
     case 'ytd':
       return new Date(now.getFullYear(), 0, 1).toISOString();
     default:
-      return new Date(now.setDate(now.getDate() - 30)).toISOString();
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   }
 }
 
@@ -130,15 +130,15 @@ function getPreviousStartDate(range: string): string {
   const now = new Date();
   switch (range) {
     case '7':
-      return new Date(now.setDate(now.getDate() - 14)).toISOString();
+      return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
     case '30':
-      return new Date(now.setDate(now.getDate() - 60)).toISOString();
+      return new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
     case '90':
-      return new Date(now.setDate(now.getDate() - 180)).toISOString();
+      return new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString();
     case 'ytd':
       return new Date(now.getFullYear() - 1, 0, 1).toISOString();
     default:
-      return new Date(now.setDate(now.getDate() - 60)).toISOString();
+      return new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
   }
 }
 
