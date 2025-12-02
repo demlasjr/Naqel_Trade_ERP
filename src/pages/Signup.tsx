@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockRoles } from '@/data/mockRoles';
+import { useRoles } from "@/hooks/useRoles";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { UserPlus } from 'lucide-react';
 export default function Signup() {
   const navigate = useNavigate();
   const { signup, user } = useAuth();
+  const { roles, isLoading: isLoadingRoles } = useRoles();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -99,12 +100,12 @@ export default function Signup() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={roleId} onValueChange={setRoleId} disabled={isLoading}>
+              <Select value={roleId} onValueChange={setRoleId} disabled={isLoading || isLoadingRoles}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockRoles.map((role) => (
+                  {roles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       {role.name}
                     </SelectItem>

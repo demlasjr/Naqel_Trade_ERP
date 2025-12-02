@@ -8,9 +8,10 @@ import { Plus, Eye, Pencil, Trash2, FileText, DollarSign } from "lucide-react";
 import { Employee } from "@/types/employee";
 import { Department } from "@/types/department";
 import { PayrollRecord } from "@/types/payroll";
-import { mockEmployees } from "@/data/mockEmployees";
-import { mockDepartments } from "@/data/mockDepartments";
-import { mockPayroll } from "@/data/mockPayroll";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useDepartments } from "@/hooks/useDepartments";
+import { usePayroll } from "@/hooks/usePayroll";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { EmployeeFilters } from "@/components/hr/EmployeeFilters";
 import { EmployeeFormDialog } from "@/components/hr/EmployeeFormDialog";
 import { EmployeeDetailDialog } from "@/components/hr/EmployeeDetailDialog";
@@ -36,9 +37,10 @@ const payrollStatusColors = {
 };
 
 export default function HRPayroll() {
-  // Employee state
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
-  const [departments] = useState<Department[]>(mockDepartments);
+  const { employees, isLoading: isLoadingEmployees, createEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  const { departments, isLoading: isLoadingDepartments } = useDepartments();
+  const { payroll: payrollRecords, isLoading: isLoadingPayroll, createPayroll, updatePayroll, deletePayroll } = usePayroll();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -47,7 +49,6 @@ export default function HRPayroll() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   
   // Payroll state
-  const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>(mockPayroll);
   const [payrollSearchQuery, setPayrollSearchQuery] = useState("");
   const [payrollStatusFilter, setPayrollStatusFilter] = useState("all");
   const [payrollPeriodFilter, setPayrollPeriodFilter] = useState("all");
@@ -56,6 +57,8 @@ export default function HRPayroll() {
   const [selectedPayroll, setSelectedPayroll] = useState<PayrollRecord | null>(null);
   
   const { toast } = useToast();
+
+  const isLoading = isLoadingEmployees || isLoadingDepartments || isLoadingPayroll;
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
@@ -90,33 +93,19 @@ export default function HRPayroll() {
     });
   }, [payrollRecords, employees, payrollSearchQuery, payrollStatusFilter, payrollPeriodFilter]);
 
-  const handleSave = (employeeData: Partial<Employee>) => {
+  const handleSave = async (employeeData: Partial<Employee>) => {
     if (selectedEmployee) {
-      setEmployees((prev) =>
-        prev.map((emp) =>
-          emp.id === selectedEmployee.id
-            ? { ...emp, ...employeeData, updatedAt: new Date().toISOString() }
-            : emp
-        )
-      );
-      toast({ title: "Employee updated successfully" });
+      await updateEmployee({ id: selectedEmployee.id, data: employeeData });
     } else {
-      const newEmployee: Employee = {
-        id: `emp-${Date.now()}`,
-        employeeId: `EMP${String(employees.length + 1).padStart(3, "0")}`,
-        ...employeeData,
-        emergencyContact: { name: "", relationship: "", phone: "" },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as Employee;
-      setEmployees((prev) => [...prev, newEmployee]);
-      toast({ title: "Employee added successfully" });
+      // Generate employee ID
+      const employeeId = `EMP${String(employees.length + 1).padStart(3, "0")}`;
+      await createEmployee({ ...employeeData, employeeId });
     }
+    setFormOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    setEmployees((prev) => prev.filter((emp) => emp.id !== id));
-    toast({ title: "Employee deleted successfully", variant: "destructive" });
+  const handleDelete = async (id: string) => {
+    await deleteEmployee(id);
   };
 
   const handleEdit = (employee: Employee) => {
@@ -129,31 +118,17 @@ export default function HRPayroll() {
     setDetailOpen(true);
   };
 
-  const handleSavePayroll = (payrollData: Partial<PayrollRecord>) => {
+  const handleSavePayroll = async (payrollData: Partial<PayrollRecord>) => {
     if (selectedPayroll) {
-      setPayrollRecords((prev) =>
-        prev.map((p) =>
-          p.id === selectedPayroll.id
-            ? { ...p, ...payrollData, updatedAt: new Date().toISOString() }
-            : p
-        )
-      );
-      toast({ title: "Payroll updated successfully" });
+      await updatePayroll({ id: selectedPayroll.id, data: payrollData });
     } else {
-      const newPayroll: PayrollRecord = {
-        id: `pay-${Date.now()}`,
-        ...payrollData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as PayrollRecord;
-      setPayrollRecords((prev) => [...prev, newPayroll]);
-      toast({ title: "Payroll processed successfully" });
+      await createPayroll(payrollData);
     }
+    setPayrollFormOpen(false);
   };
 
-  const handleDeletePayroll = (id: string) => {
-    setPayrollRecords((prev) => prev.filter((p) => p.id !== id));
-    toast({ title: "Payroll deleted successfully", variant: "destructive" });
+  const handleDeletePayroll = async (id: string) => {
+    await deletePayroll(id);
   };
 
   const handleEditPayroll = (payroll: PayrollRecord) => {
@@ -176,14 +151,18 @@ export default function HRPayroll() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">HR & Payroll</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage employees, departments, and payroll
-          </p>
-        </div>
-      </div>
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">HR & Payroll</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage employees, departments, and payroll
+              </p>
+            </div>
+          </div>
 
       <EmployeeAnalytics employees={employees} departments={departments} />
 
@@ -431,6 +410,8 @@ export default function HRPayroll() {
         employee={getEmployee(selectedPayroll?.employeeId || "")}
         department={getDepartment(getEmployee(selectedPayroll?.employeeId || "")?.departmentId || "")}
       />
+        </>
+      )}
     </div>
   );
 }

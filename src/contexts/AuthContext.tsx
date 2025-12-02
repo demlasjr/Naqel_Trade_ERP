@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { User } from '@/types/user';
 import { Role } from '@/types/role';
-import { mockRoles } from '@/data/mockRoles';
 
 interface AuthContextType {
   user: User | null;
@@ -36,21 +35,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('user_id', userId)
       .single();
 
-    if (profile && userRole) {
+    if (profile) {
       const userData: User = {
         id: profile.id,
-        name: profile.full_name || '',
+        name: profile.name || '',
         email: profile.email,
-        role: userRole.role,
-        department: profile.department || undefined,
+        role: userRole?.role || 'viewer',
         status: profile.status,
         avatar: profile.avatar_url || undefined,
         createdAt: profile.created_at,
       };
       setUser(userData);
 
-      const roleData = mockRoles.find(r => r.roleType === userRole.role);
-      setRole(roleData || null);
+      if (userRole) {
+        // Fetch the role details from roles table
+        const { data: roleData } = await supabase
+          .from('roles')
+          .select('*')
+          .eq('role_type', userRole.role)
+          .single();
+
+        if (roleData) {
+          setRole({
+            id: roleData.id,
+            name: roleData.name,
+            roleType: roleData.role_type,
+            description: roleData.description || '',
+            permissions: [],
+            userCount: 0,
+            isSystemRole: roleData.is_system_role || false,
+            createdAt: roleData.created_at,
+          });
+        }
+      }
     }
   };
 
@@ -113,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: name,
+            name: name,
+            email: email,
           },
         },
       });
@@ -123,12 +141,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        // Create user role
-        const selectedRole = mockRoles.find(r => r.id === roleId);
+        // Get the role type from the roles table
+        const { data: selectedRole } = await supabase
+          .from('roles')
+          .select('role_type')
+          .eq('id', roleId)
+          .single();
+        
         if (selectedRole) {
           await supabase.from('user_roles').insert({
             user_id: data.user.id,
-            role: selectedRole.roleType,
+            role: selectedRole.role_type,
           });
         }
 
