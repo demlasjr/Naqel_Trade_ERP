@@ -9,13 +9,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ReportFilters from "./ReportFilters";
-import { mockAccounts } from "@/data/mockAccounts";
+import { useAccounts } from "@/hooks/useAccounts";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function TrialBalance() {
   const [period, setPeriod] = useState("current-month");
+  const { accounts, isLoading } = useAccounts();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
   // Calculate debits and credits for each account
-  const accountBalances = mockAccounts.map(account => {
+  const accountBalances = accounts.map(account => {
     const isDebitAccount = ['Assets', 'Expenses'].includes(account.type);
     return {
       ...account,
@@ -60,23 +66,31 @@ export default function TrialBalance() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accountBalances.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-mono">{account.code}</TableCell>
-                    <TableCell>{account.name}</TableCell>
-                    <TableCell>
-                      <span className="text-xs px-2 py-1 rounded bg-muted">
-                        {account.type}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {account.debit > 0 ? `MRU ${account.debit.toLocaleString()}` : '-'}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {account.credit > 0 ? `MRU ${account.credit.toLocaleString()}` : '-'}
+                {accountBalances.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No accounts found
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  accountBalances.map((account) => (
+                    <TableRow key={account.id}>
+                      <TableCell className="font-mono">{account.code}</TableCell>
+                      <TableCell>{account.name}</TableCell>
+                      <TableCell>
+                        <span className="text-xs px-2 py-1 rounded bg-muted">
+                          {account.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {account.debit > 0 ? `MRU ${account.debit.toLocaleString()}` : '-'}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {account.credit > 0 ? `MRU ${account.credit.toLocaleString()}` : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
                 <TableRow className="bg-muted font-bold">
                   <TableCell colSpan={3}>Total</TableCell>
                   <TableCell className="text-right text-lg">
@@ -86,7 +100,7 @@ export default function TrialBalance() {
                     MRU {totalCredits.toLocaleString()}
                   </TableCell>
                 </TableRow>
-                <TableRow className={isBalanced ? 'bg-green-50' : 'bg-red-50'}>
+                <TableRow className={isBalanced ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}>
                   <TableCell colSpan={3} className="font-semibold">
                     {isBalanced ? '✓ Balanced' : '⚠ Out of Balance'}
                   </TableCell>

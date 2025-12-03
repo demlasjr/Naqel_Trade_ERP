@@ -28,48 +28,56 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mockAccounts } from "@/data/mockAccounts";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
-
-interface JournalEntry {
-  id: string;
-  date: Date;
-  reference: string;
-  description: string;
-  lines: {
-    account: string;
-    debit: number;
-    credit: number;
-  }[];
-  status: 'draft' | 'posted';
-}
 
 export default function JournalEntries() {
   const [open, setOpen] = useState(false);
-  const [entries] = useState<JournalEntry[]>([
-    {
-      id: 'JE-001',
-      date: new Date('2024-11-05'),
-      reference: 'JE-001',
-      description: 'Monthly depreciation expense',
-      lines: [
-        { account: 'Depreciation', debit: 5000, credit: 0 },
-        { account: 'Accumulated Depreciation', debit: 0, credit: 5000 },
-      ],
-      status: 'posted',
-    },
-    {
-      id: 'JE-002',
-      date: new Date('2024-11-03'),
-      reference: 'JE-002',
-      description: 'Accrued expenses adjustment',
-      lines: [
-        { account: 'Accrued Expenses', debit: 2500, credit: 0 },
-        { account: 'Utilities', debit: 0, credit: 2500 },
-      ],
-      status: 'posted',
-    },
-  ]);
+  const { accounts, isLoading: isLoadingAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions, createTransaction } = useTransactions();
+
+  // Filter transactions that are journal entries (adjustments or manual entries)
+  const journalEntries = transactions.filter(t => 
+    t.type === 'adjustment' || t.type === 'transfer'
+  );
+
+  const [newEntry, setNewEntry] = useState({
+    date: '',
+    reference: '',
+    description: '',
+    accountFrom: '',
+    accountTo: '',
+    amount: '',
+  });
+
+  const handleSaveEntry = async () => {
+    if (!newEntry.date || !newEntry.description || !newEntry.amount) return;
+    
+    await createTransaction({
+      date: newEntry.date,
+      type: 'adjustment',
+      description: newEntry.description,
+      reference: newEntry.reference || `JE-${Date.now()}`,
+      amount: parseFloat(newEntry.amount),
+      status: 'pending',
+    });
+    
+    setNewEntry({
+      date: '',
+      reference: '',
+      description: '',
+      accountFrom: '',
+      accountTo: '',
+      amount: '',
+    });
+    setOpen(false);
+  };
+
+  if (isLoadingAccounts || isLoadingTransactions) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="space-y-6">
@@ -93,56 +101,86 @@ export default function JournalEntries() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Date</Label>
-                  <Input type="date" />
+                  <Input 
+                    type="date" 
+                    value={newEntry.date}
+                    onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>Reference</Label>
-                  <Input placeholder="JE-XXX" />
+                  <Input 
+                    placeholder="JE-XXX" 
+                    value={newEntry.reference}
+                    onChange={(e) => setNewEntry({ ...newEntry, reference: e.target.value })}
+                  />
                 </div>
               </div>
               <div>
                 <Label>Description</Label>
-                <Textarea placeholder="Enter description..." />
+                <Textarea 
+                  placeholder="Enter description..." 
+                  value={newEntry.description}
+                  onChange={(e) => setNewEntry({ ...newEntry, description: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Journal Lines</Label>
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-6">
-                      <Label className="text-xs">Account</Label>
-                      <Select>
+                    <div className="col-span-5">
+                      <Label className="text-xs">Debit Account</Label>
+                      <Select 
+                        value={newEntry.accountTo}
+                        onValueChange={(value) => setNewEntry({ ...newEntry, accountTo: value })}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select account" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.name}>
                               {account.code} - {account.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-3">
-                      <Label className="text-xs">Debit</Label>
-                      <Input type="number" placeholder="0.00" />
+                    <div className="col-span-5">
+                      <Label className="text-xs">Credit Account</Label>
+                      <Select 
+                        value={newEntry.accountFrom}
+                        onValueChange={(value) => setNewEntry({ ...newEntry, accountFrom: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {accounts.map((account) => (
+                            <SelectItem key={account.id} value={account.name}>
+                              {account.code} - {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="col-span-3">
-                      <Label className="text-xs">Credit</Label>
-                      <Input type="number" placeholder="0.00" />
+                    <div className="col-span-2">
+                      <Label className="text-xs">Amount</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={newEntry.amount}
+                        onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
+                      />
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Line
-                  </Button>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => setOpen(false)}>Save Entry</Button>
+                <Button onClick={handleSaveEntry}>Save Entry</Button>
               </div>
             </div>
           </DialogContent>
@@ -164,30 +202,30 @@ export default function JournalEntries() {
                   <TableHead>Date</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Debits</TableHead>
-                  <TableHead className="text-right">Credits</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entries.map((entry) => {
-                  const totalDebit = entry.lines.reduce((sum, line) => sum + line.debit, 0);
-                  const totalCredit = entry.lines.reduce((sum, line) => sum + line.credit, 0);
-                  return (
+                {journalEntries.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      No journal entries found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  journalEntries.map((entry) => (
                     <TableRow key={entry.id} className="cursor-pointer hover:bg-muted/50">
                       <TableCell className="whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {format(entry.date, 'MMM dd, yyyy')}
+                          {format(new Date(entry.date), 'MMM dd, yyyy')}
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono">{entry.reference}</TableCell>
+                      <TableCell className="font-mono">{entry.reference || '-'}</TableCell>
                       <TableCell>{entry.description}</TableCell>
                       <TableCell className="text-right font-medium">
-                        MRU {totalDebit.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        MRU {totalCredit.toLocaleString()}
+                        MRU {entry.amount.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge variant={entry.status === 'posted' ? 'default' : 'secondary'}>
@@ -195,8 +233,8 @@ export default function JournalEntries() {
                         </Badge>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

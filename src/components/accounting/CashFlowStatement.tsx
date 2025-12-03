@@ -1,29 +1,45 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ReportFilters from "./ReportFilters";
-import { mockTransactions } from "@/data/mockTransactions";
+import { useTransactions } from "@/hooks/useTransactions";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function CashFlowStatement() {
   const [period, setPeriod] = useState("current-month");
+  const { transactions, isLoading } = useTransactions();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
   // Calculate cash flow categories
-  const operatingCashFlow = mockTransactions
-    .filter(t => ['sale', 'purchase', 'expense'].includes(t.type) && t.status === 'posted')
+  const postedTransactions = transactions.filter(t => t.status === 'posted');
+  
+  const salesCash = postedTransactions
+    .filter(t => t.type === 'sale')
+    .reduce((sum, t) => sum + t.amount, 0);
+    
+  const expensesCash = postedTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const operatingCashFlow = postedTransactions
+    .filter(t => ['sale', 'purchase', 'expense'].includes(t.type))
     .reduce((sum, t) => {
       if (t.type === 'sale') return sum + t.amount;
       return sum - t.amount;
     }, 0);
 
-  const investingCashFlow = mockTransactions
-    .filter(t => t.type === 'adjustment' && t.status === 'posted')
+  const investingCashFlow = postedTransactions
+    .filter(t => t.type === 'adjustment')
     .reduce((sum, t) => sum - t.amount, 0);
 
-  const financingCashFlow = mockTransactions
-    .filter(t => ['transfer', 'payment'].includes(t.type) && t.status === 'posted')
+  const financingCashFlow = postedTransactions
+    .filter(t => ['transfer', 'payment'].includes(t.type))
     .reduce((sum, t) => sum + (t.type === 'transfer' ? t.amount : -t.amount), 0);
 
   const netCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow;
-  const beginningCash = 100000; // Mock beginning balance
+  const beginningCash = 100000; // This should come from opening balance
   const endingCash = beginningCash + netCashFlow;
 
   const handleExport = () => {
@@ -53,13 +69,13 @@ export default function CashFlowStatement() {
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Cash from Sales</span>
                 <span className="font-medium text-green-600">
-                  MRU {mockTransactions.filter(t => t.type === 'sale' && t.status === 'posted').reduce((s, t) => s + t.amount, 0).toLocaleString()}
+                  MRU {salesCash.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
                 <span className="text-sm">Cash for Expenses</span>
                 <span className="font-medium text-red-600">
-                  -MRU {mockTransactions.filter(t => t.type === 'expense' && t.status === 'posted').reduce((s, t) => s + t.amount, 0).toLocaleString()}
+                  -MRU {expensesCash.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">

@@ -1,14 +1,20 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ReportFilters from "./ReportFilters";
-import { mockAccounts } from "@/data/mockAccounts";
+import { useAccounts } from "@/hooks/useAccounts";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function BalanceSheet() {
   const [period, setPeriod] = useState("current-month");
+  const { accounts, isLoading } = useAccounts();
 
-  const assets = mockAccounts.filter(a => a.type === 'Assets');
-  const liabilities = mockAccounts.filter(a => a.type === 'Liabilities');
-  const equity = mockAccounts.filter(a => a.type === 'Equity');
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  const assets = accounts.filter(a => a.type === 'Assets');
+  const liabilities = accounts.filter(a => a.type === 'Liabilities');
+  const equity = accounts.filter(a => a.type === 'Equity');
   
   const totalAssets = assets.reduce((sum, acc) => sum + acc.balance, 0);
   const totalLiabilities = liabilities.reduce((sum, acc) => sum + acc.balance, 0);
@@ -38,14 +44,18 @@ export default function BalanceSheet() {
           <div>
             <h3 className="font-semibold text-lg mb-3">Assets</h3>
             <div className="space-y-2">
-              {assets.map((account) => (
-                <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
-                  <span className="text-sm" style={{ paddingLeft: `${(account.code.length - 4) * 12}px` }}>
-                    {account.name}
-                  </span>
-                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
-                </div>
-              ))}
+              {assets.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-2 px-4">No asset accounts found</p>
+              ) : (
+                assets.map((account) => (
+                  <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
+                    <span className="text-sm" style={{ paddingLeft: `${(account.code.length - 4) * 12}px` }}>
+                      {account.name}
+                    </span>
+                    <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Assets</span>
                 <span className="text-lg">MRU {totalAssets.toLocaleString()}</span>
@@ -57,14 +67,18 @@ export default function BalanceSheet() {
           <div>
             <h3 className="font-semibold text-lg mb-3">Liabilities</h3>
             <div className="space-y-2">
-              {liabilities.map((account) => (
-                <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
-                  <span className="text-sm" style={{ paddingLeft: `${(account.code.length - 4) * 12}px` }}>
-                    {account.name}
-                  </span>
-                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
-                </div>
-              ))}
+              {liabilities.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-2 px-4">No liability accounts found</p>
+              ) : (
+                liabilities.map((account) => (
+                  <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
+                    <span className="text-sm" style={{ paddingLeft: `${(account.code.length - 4) * 12}px` }}>
+                      {account.name}
+                    </span>
+                    <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Liabilities</span>
                 <span className="text-lg">MRU {totalLiabilities.toLocaleString()}</span>
@@ -76,12 +90,16 @@ export default function BalanceSheet() {
           <div>
             <h3 className="font-semibold text-lg mb-3">Equity</h3>
             <div className="space-y-2">
-              {equity.map((account) => (
-                <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
-                  <span className="text-sm">{account.name}</span>
-                  <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
-                </div>
-              ))}
+              {equity.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-2 px-4">No equity accounts found</p>
+              ) : (
+                equity.map((account) => (
+                  <div key={account.id} className="flex justify-between items-center py-2 px-4 hover:bg-muted/50 rounded">
+                    <span className="text-sm">{account.name}</span>
+                    <span className="font-medium">MRU {account.balance.toLocaleString()}</span>
+                  </div>
+                ))
+              )}
               <div className="flex justify-between items-center py-2 px-4 bg-muted rounded font-semibold">
                 <span>Total Equity</span>
                 <span className="text-lg">MRU {totalEquity.toLocaleString()}</span>
