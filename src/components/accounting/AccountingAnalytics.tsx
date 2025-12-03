@@ -1,25 +1,82 @@
+import { useMemo } from "react";
 import { TrendingUp, TrendingDown, DollarSign, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-const monthlyData = [
-  { month: 'Jul', revenue: 425000, expenses: 298500, profit: 126500 },
-  { month: 'Aug', revenue: 445000, expenses: 312000, profit: 133000 },
-  { month: 'Sep', revenue: 438000, expenses: 305000, profit: 133000 },
-  { month: 'Oct', revenue: 462000, expenses: 318000, profit: 144000 },
-  { month: 'Nov', revenue: 425000, expenses: 298500, profit: 126500 },
-];
-
-const accountTypeData = [
-  { type: 'Assets', value: 485000, color: 'hsl(var(--chart-1))' },
-  { type: 'Liabilities', value: 165000, color: 'hsl(var(--chart-2))' },
-  { type: 'Equity', value: 320000, color: 'hsl(var(--chart-3))' },
-];
+import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function AccountingAnalytics() {
-  const currentProfit = 126500;
-  const previousProfit = 133000;
-  const profitChange = ((currentProfit - previousProfit) / previousProfit) * 100;
+  const { accounts, isLoading: isLoadingAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions } = useTransactions();
+
+  const analytics = useMemo(() => {
+    const assets = accounts.filter(a => a.type === 'Assets');
+    const liabilities = accounts.filter(a => a.type === 'Liabilities');
+    const equity = accounts.filter(a => a.type === 'Equity');
+    const revenue = accounts.filter(a => a.type === 'Revenue');
+    const expenses = accounts.filter(a => a.type === 'Expenses');
+
+    const totalAssets = assets.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalLiabilities = liabilities.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalRevenue = revenue.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalExpenses = expenses.reduce((sum, acc) => sum + acc.balance, 0);
+    const netProfit = totalRevenue - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+    // Calculate ratios
+    const currentRatio = totalLiabilities > 0 ? totalAssets / totalLiabilities : 0;
+    const debtToEquity = totalEquity > 0 ? totalLiabilities / totalEquity : 0;
+    const returnOnAssets = totalAssets > 0 ? (netProfit / totalAssets) * 100 : 0;
+    const returnOnEquity = totalEquity > 0 ? (netProfit / totalEquity) * 100 : 0;
+
+    // Account type data for chart
+    const accountTypeData = [
+      { type: 'Assets', value: totalAssets },
+      { type: 'Liabilities', value: totalLiabilities },
+      { type: 'Equity', value: totalEquity },
+      { type: 'Revenue', value: totalRevenue },
+      { type: 'Expenses', value: totalExpenses },
+    ];
+
+    // Monthly data from transactions
+    const monthlyData = transactions.reduce((acc, txn) => {
+      const date = new Date(txn.date);
+      const monthKey = date.toLocaleString('default', { month: 'short' });
+      
+      if (!acc[monthKey]) {
+        acc[monthKey] = { month: monthKey, revenue: 0, expenses: 0, profit: 0 };
+      }
+      
+      if (txn.type === 'sale' && txn.status === 'posted') {
+        acc[monthKey].revenue += txn.amount;
+      } else if (txn.type === 'expense' && txn.status === 'posted') {
+        acc[monthKey].expenses += txn.amount;
+      }
+      
+      acc[monthKey].profit = acc[monthKey].revenue - acc[monthKey].expenses;
+      return acc;
+    }, {} as Record<string, { month: string; revenue: number; expenses: number; profit: number }>);
+
+    return {
+      totalAssets,
+      totalLiabilities,
+      totalEquity,
+      netProfit,
+      profitMargin,
+      currentRatio,
+      debtToEquity,
+      returnOnAssets,
+      returnOnEquity,
+      accountTypeData,
+      monthlyData: Object.values(monthlyData),
+    };
+  }, [accounts, transactions]);
+
+  if (isLoadingAccounts || isLoadingTransactions) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="space-y-6">
@@ -31,17 +88,16 @@ export default function AccountingAnalytics() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">MRU {currentProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold">MRU {analytics.netProfit.toLocaleString()}</div>
             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-              {profitChange >= 0 ? (
+              {analytics.netProfit >= 0 ? (
                 <TrendingUp className="h-4 w-4 text-green-600" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
-              <span className={profitChange >= 0 ? 'text-green-600' : 'text-red-600'}>
-                {Math.abs(profitChange).toFixed(1)}%
+              <span className={analytics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                {analytics.netProfit >= 0 ? 'Profit' : 'Loss'}
               </span>
-              <span>vs last month</span>
             </div>
           </CardContent>
         </Card>
@@ -52,7 +108,7 @@ export default function AccountingAnalytics() {
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">MRU 485,000</div>
+            <div className="text-2xl font-bold">MRU {analytics.totalAssets.toLocaleString()}</div>
             <p className="text-sm text-muted-foreground mt-1">
               Current + Fixed Assets
             </p>
@@ -65,7 +121,7 @@ export default function AccountingAnalytics() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">29.8%</div>
+            <div className="text-2xl font-bold">{analytics.profitMargin.toFixed(1)}%</div>
             <p className="text-sm text-muted-foreground mt-1">
               Net profit / Revenue
             </p>
@@ -77,38 +133,50 @@ export default function AccountingAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Profit Trend</CardTitle>
+            <CardTitle>Monthly Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-1))" strokeWidth={2} />
-                <Line type="monotone" dataKey="expenses" stroke="hsl(var(--chart-2))" strokeWidth={2} />
-                <Line type="monotone" dataKey="profit" stroke="hsl(var(--chart-3))" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            {analytics.monthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={analytics.monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-1))" strokeWidth={2} name="Revenue" />
+                  <Line type="monotone" dataKey="expenses" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Expenses" />
+                  <Line type="monotone" dataKey="profit" stroke="hsl(var(--chart-3))" strokeWidth={2} name="Profit" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                No transaction data available for chart
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Account Balances</CardTitle>
+            <CardTitle>Account Balances by Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={accountTypeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="type" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
+            {analytics.accountTypeData.some(d => d.value > 0) ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analytics.accountTypeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" name="Balance" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                No account data available for chart
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -122,22 +190,22 @@ export default function AccountingAnalytics() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <p className="text-sm text-muted-foreground">Current Ratio</p>
-              <p className="text-2xl font-bold">2.48</p>
+              <p className="text-2xl font-bold">{analytics.currentRatio.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground mt-1">Current Assets / Current Liabilities</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Debt to Equity</p>
-              <p className="text-2xl font-bold">0.52</p>
+              <p className="text-2xl font-bold">{analytics.debtToEquity.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground mt-1">Total Liabilities / Total Equity</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Return on Assets</p>
-              <p className="text-2xl font-bold">26.1%</p>
+              <p className="text-2xl font-bold">{analytics.returnOnAssets.toFixed(1)}%</p>
               <p className="text-xs text-muted-foreground mt-1">Net Income / Total Assets</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Return on Equity</p>
-              <p className="text-2xl font-bold">39.5%</p>
+              <p className="text-2xl font-bold">{analytics.returnOnEquity.toFixed(1)}%</p>
               <p className="text-xs text-muted-foreground mt-1">Net Income / Total Equity</p>
             </div>
           </div>

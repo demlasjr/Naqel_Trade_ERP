@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,20 +17,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mockAccounts, mockAccountTransactions } from "@/data/mockAccounts";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useTransactions } from "@/hooks/useTransactions";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
 
 export default function GeneralLedger() {
-  const [selectedAccount, setSelectedAccount] = useState("1112");
+  const { accounts, isLoading: isLoadingAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions } = useTransactions();
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [search, setSearch] = useState("");
 
-  const account = mockAccounts.find(a => a.id === selectedAccount);
-  const transactions = mockAccountTransactions[selectedAccount] || [];
+  // Set default selected account when accounts load
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
 
-  const filteredTransactions = transactions.filter(t =>
-    t.description.toLowerCase().includes(search.toLowerCase()) ||
-    t.reference.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter transactions for selected account
+  const accountTransactions = useMemo(() => {
+    if (!selectedAccount) return [];
+    
+    return transactions
+      .filter(t => 
+        t.accountFrom === selectedAccount.name || 
+        t.accountTo === selectedAccount.name
+      )
+      .filter(t =>
+        t.description.toLowerCase().includes(search.toLowerCase()) ||
+        (t.reference?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      )
+      .map((t, index, arr) => {
+        const isDebit = t.accountTo === selectedAccount.name;
+        const debit = isDebit ? t.amount : 0;
+        const credit = !isDebit ? t.amount : 0;
+        
+        // Calculate running balance (simplified)
+        const previousBalance = index > 0 ? 
+          arr.slice(0, index).reduce((sum, prev) => {
+            const prevDebit = prev.accountTo === selectedAccount.name ? prev.amount : 0;
+            const prevCredit = prev.accountFrom === selectedAccount.name ? prev.amount : 0;
+            return sum + prevDebit - prevCredit;
+          }, selectedAccount.balance) : selectedAccount.balance;
+        
+        return {
+          ...t,
+          debit,
+          credit,
+          balance: previousBalance + debit - credit,
+        };
+      });
+  }, [selectedAccount, transactions, search]);
+
+  if (isLoadingAccounts || isLoadingTransactions) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="space-y-6">
@@ -41,12 +79,15 @@ export default function GeneralLedger() {
         <CardContent className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
-              <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+              <Select 
+                value={selectedAccountId || selectedAccount?.id} 
+                onValueChange={setSelectedAccountId}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select an account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockAccounts.map((account) => (
+                  {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.code} - {account.name}
                     </SelectItem>
@@ -67,24 +108,24 @@ export default function GeneralLedger() {
             </div>
           </div>
 
-          {account && (
+          {selectedAccount && (
             <div className="p-4 bg-muted rounded-lg">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Account</p>
-                  <p className="font-semibold">{account.name}</p>
+                  <p className="font-semibold">{selectedAccount.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Code</p>
-                  <p className="font-semibold font-mono">{account.code}</p>
+                  <p className="font-semibold font-mono">{selectedAccount.code}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Type</p>
-                  <p className="font-semibold">{account.type}</p>
+                  <p className="font-semibold">{selectedAccount.type}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Current Balance</p>
-                  <p className="font-semibold text-lg">MRU {account.balance.toLocaleString()}</p>
+                  <p className="font-semibold text-lg">MRU {selectedAccount.balance.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -103,20 +144,20 @@ export default function GeneralLedger() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTransactions.length === 0 ? (
+                {accountTransactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No transactions found
+                      No transactions found for this account
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTransactions.map((transaction) => (
+                  accountTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="whitespace-nowrap">
-                        {format(transaction.date, 'MMM dd, yyyy')}
+                        {format(new Date(transaction.date), 'MMM dd, yyyy')}
                       </TableCell>
                       <TableCell>{transaction.description}</TableCell>
-                      <TableCell className="font-mono text-sm">{transaction.reference}</TableCell>
+                      <TableCell className="font-mono text-sm">{transaction.reference || '-'}</TableCell>
                       <TableCell className="text-right font-medium">
                         {transaction.debit > 0 ? `MRU ${transaction.debit.toLocaleString()}` : '-'}
                       </TableCell>
