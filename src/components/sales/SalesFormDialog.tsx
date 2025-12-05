@@ -22,6 +22,7 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
   const { toast } = useToast();
   const [formData, setFormData] = useState<Partial<SalesOrder>>({
     customerName: "",
+    orderNumber: "",
     date: new Date().toISOString().split("T")[0],
     status: "draft",
     lineItems: [],
@@ -36,6 +37,7 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
     } else {
       setFormData({
         customerName: "",
+        orderNumber: "",
         date: new Date().toISOString().split("T")[0],
         status: "draft",
         lineItems: [],
@@ -112,6 +114,10 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
   };
 
   const handleSubmit = async () => {
+    if (!formData.orderNumber?.trim()) {
+      toast({ title: "Error", description: "Please enter order number", variant: "destructive" });
+      return;
+    }
     if (!formData.customerName?.trim()) {
       toast({ title: "Error", description: "Please enter customer name", variant: "destructive" });
       return;
@@ -147,6 +153,16 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="orderNumber">Order Number *</Label>
+              <Input
+                id="orderNumber"
+                value={formData.orderNumber || ""}
+                onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
+                placeholder="Enter order number"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="customerName">Customer Name *</Label>
               <Input
