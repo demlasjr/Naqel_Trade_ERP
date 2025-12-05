@@ -4,15 +4,13 @@ import { Label } from "@/components/ui/label";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SalesFilters as SalesFiltersType } from "@/types/sale";
-import { Customer } from "@/types/customer";
 
 interface SalesFiltersProps {
   filters: SalesFiltersType;
   onFilterChange: (filters: SalesFiltersType) => void;
-  customers: Customer[];
 }
 
-export function SalesFilters({ filters, onFilterChange, customers }: SalesFiltersProps) {
+export function SalesFilters({ filters, onFilterChange }: SalesFiltersProps) {
   const handleReset = () => {
     onFilterChange({
       search: "",
@@ -28,7 +26,6 @@ export function SalesFilters({ filters, onFilterChange, customers }: SalesFilter
   const hasActiveFilters = 
     filters.search || 
     filters.status !== "all" || 
-    filters.customerId !== "all" ||
     filters.dateFrom || 
     filters.dateTo || 
     filters.minAmount || 
@@ -74,23 +71,6 @@ export function SalesFilters({ filters, onFilterChange, customers }: SalesFilter
               <SelectItem value="invoiced">Invoiced</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="customer">Customer</Label>
-          <Select value={filters.customerId} onValueChange={(value) => onFilterChange({ ...filters, customerId: value })}>
-            <SelectTrigger id="customer">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Customers</SelectItem>
-              {customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
