@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SalesOrder, LineItem } from "@/types/sale";
+import { Customer } from "@/types/customer";
 import { Product } from "@/types/product";
 import { Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -15,45 +16,53 @@ interface SalesFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (sale: Partial<SalesOrder>) => Promise<void>;
+  customers: Customer[];
   products: Product[];
+  onCreateCustomer?: (customer: Partial<Customer>) => Promise<any>;
 }
 
-export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: SalesFormDialogProps) {
+export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, products, onCreateCustomer }: SalesFormDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<Partial<SalesOrder>>({
-    customerName: "",
-    orderNumber: "",
+    customerId: "",
     date: new Date().toISOString().split("T")[0],
+    dueDate: "",
     status: "draft",
     lineItems: [],
     notes: "",
   });
-  const [customerNumber, setCustomerNumber] = useState("");
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
 
   useEffect(() => {
     if (sale) {
       setFormData(sale);
-      setCustomerNumber("");
     } else {
       setFormData({
-        customerName: "",
-        orderNumber: "",
+        customerId: "",
         date: new Date().toISOString().split("T")[0],
+        dueDate: "",
         status: "draft",
         lineItems: [],
         notes: "",
       });
-      setCustomerNumber("");
     }
+    setShowNewCustomer(false);
+    setNewCustomerName("");
+    setNewCustomerEmail("");
+    setNewCustomerPhone("");
   }, [sale, open]);
 
   const calculateLineItem = (item: Partial<LineItem>): LineItem => {
     const quantity = item.quantity || 0;
     const unitPrice = item.unitPrice || 0;
-    const discount = item.discount || 0; // Now in MRU, not percentage
+    const discount = item.discount || 0;
 
     const subtotal = quantity * unitPrice;
-    const total = subtotal - discount;
+    const discountAmount = subtotal * (discount / 100);
+    const total = subtotal - discountAmount;
 
     return {
       ...item,
@@ -67,7 +76,10 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
 
   const calculateTotals = (items: LineItem[]) => {
     const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const discountAmount = items.reduce((sum, item) => sum + (item.discount || 0), 0);
+    const discountAmount = items.reduce((sum, item) => {
+      const itemSubtotal = item.quantity * item.unitPrice;
+      return sum + (itemSubtotal * (item.discount / 100));
+    }, 0);
     const total = items.reduce((sum, item) => sum + item.total, 0);
 
     return { subtotal, discountAmount, taxAmount: 0, total };
@@ -113,13 +125,34 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
     setFormData({ ...formData, lineItems: items });
   };
 
-  const handleSubmit = async () => {
-    if (!formData.orderNumber?.trim()) {
-      toast({ title: "Error", description: "Please enter order number", variant: "destructive" });
+  const handleCreateCustomer = async () => {
+    if (!newCustomerName.trim()) {
+      toast({ title: "Error", description: "Customer name is required", variant: "destructive" });
       return;
     }
-    if (!formData.customerName?.trim()) {
-      toast({ title: "Error", description: "Please enter customer name", variant: "destructive" });
+
+    if (onCreateCustomer) {
+      try {
+        const newCustomer = await onCreateCustomer({
+          name: newCustomerName.trim(),
+          email: newCustomerEmail.trim() || undefined,
+          phone: newCustomerPhone.trim() || undefined,
+          status: "active",
+        });
+        setFormData({ ...formData, customerId: newCustomer.id });
+        setShowNewCustomer(false);
+        setNewCustomerName("");
+        setNewCustomerEmail("");
+        setNewCustomerPhone("");
+      } catch (error) {
+        // Error handled in hook
+      }
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.customerId) {
+      toast({ title: "Error", description: "Please select a customer", variant: "destructive" });
       return;
     }
     if (!formData.lineItems || formData.lineItems.length === 0) {
@@ -127,10 +160,12 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
       return;
     }
 
+    const customer = customers.find((c) => c.id === formData.customerId);
     const totals = calculateTotals(formData.lineItems);
 
     const saleData: Partial<SalesOrder> = {
       ...formData,
+      customerName: customer?.name || "",
       ...totals,
       paidAmount: sale?.paidAmount || 0,
       balance: totals.total - (sale?.paidAmount || 0),
@@ -154,33 +189,68 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="orderNumber">Order Number *</Label>
-              <Input
-                id="orderNumber"
-                value={formData.orderNumber || ""}
-                onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
-                placeholder="Enter order number"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="customerName">Customer Name *</Label>
-              <Input
-                id="customerName"
-                value={formData.customerName || ""}
-                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                placeholder="Enter customer name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="customerNumber">Customer Number</Label>
-              <Input
-                id="customerNumber"
-                value={customerNumber}
-                onChange={(e) => setCustomerNumber(e.target.value)}
-                placeholder="Enter customer number"
-              />
+              <Label htmlFor="customer">Customer *</Label>
+              {!showNewCustomer ? (
+                <div className="space-y-2">
+                  <Select
+                    value={formData.customerId}
+                    onValueChange={(value) => {
+                      if (value === "__create_new__") {
+                        setShowNewCustomer(true);
+                      } else {
+                        setFormData({ ...formData, customerId: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="customer">
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {onCreateCustomer && (
+                        <SelectItem value="__create_new__" className="text-primary font-medium">
+                          <span className="flex items-center gap-1">
+                            <Plus className="h-4 w-4" />
+                            Create new customer
+                          </span>
+                        </SelectItem>
+                      )}
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+                  <div className="text-sm font-medium">New Customer</div>
+                  <Input
+                    placeholder="Customer name *"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Email (optional)"
+                    type="email"
+                    value={newCustomerEmail}
+                    onChange={(e) => setNewCustomerEmail(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Phone (optional)"
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={handleCreateCustomer}>
+                      Create
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setShowNewCustomer(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -211,6 +281,16 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -230,7 +310,7 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
                       <th className="text-left p-2 text-sm">Product</th>
                       <th className="text-right p-2 text-sm">Qty</th>
                       <th className="text-right p-2 text-sm">Price</th>
-                      <th className="text-right p-2 text-sm">Disc (MRU)</th>
+                      <th className="text-right p-2 text-sm">Disc%</th>
                       <th className="text-right p-2 text-sm">Total</th>
                       <th className="p-2 text-sm"></th>
                     </tr>
@@ -277,11 +357,11 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, products }: 
                         <td className="p-2">
                           <Input
                             type="number"
-                            step="0.01"
                             min="0"
+                            max="100"
                             value={item.discount}
                             onChange={(e) => updateLineItem(index, "discount", parseFloat(e.target.value) || 0)}
-                            className="w-24 text-right"
+                            className="w-20 text-right"
                           />
                         </td>
                         <td className="p-2 text-right font-medium">{item.total.toFixed(2)} MRU</td>
