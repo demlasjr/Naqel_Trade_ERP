@@ -31,21 +31,16 @@ export function useProducts() {
         description: p.description || "",
         category: "other",
         status: p.status,
-        stockQuantity: p.stock_quantity,
-        lowStockThreshold: p.low_stock_threshold,
-        reorderPoint: p.reorder_point,
+        stockQuantity: p.current_stock || 0,
+        lowStockThreshold: p.reorder_level || 10,
+        reorderPoint: p.reorder_level || 10,
         unit: p.unit,
         costPrice: p.cost_price,
         sellingPrice: p.selling_price,
-        markup: p.markup,
+        markup: p.selling_price && p.cost_price ? ((p.selling_price - p.cost_price) / p.cost_price) * 100 : 0,
         supplierId: p.supplier_id || undefined,
         supplierName: p.vendor?.name || undefined,
-        supplierSku: p.supplier_sku || undefined,
-        barcode: p.barcode || undefined,
         imageUrl: p.image_url || undefined,
-        location: p.location || undefined,
-        weight: p.weight || undefined,
-        dimensions: p.dimensions || undefined,
         createdAt: p.created_at,
         updatedAt: p.updated_at || undefined,
         createdBy: p.created_by || "System",
@@ -63,10 +58,6 @@ export function useProducts() {
   const createProduct = async (productData: Partial<Product>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      const markup = productData.costPrice && productData.sellingPrice
-        ? ((productData.sellingPrice - productData.costPrice) / productData.costPrice) * 100
-        : 0;
 
       const { data, error } = await supabase
         .from("products")
@@ -75,20 +66,13 @@ export function useProducts() {
           name: productData.name,
           description: productData.description,
           status: productData.status || "active",
-          stock_quantity: productData.stockQuantity || 0,
-          low_stock_threshold: productData.lowStockThreshold || 10,
-          reorder_point: productData.reorderPoint || 15,
+          current_stock: productData.stockQuantity || 0,
+          reorder_level: productData.reorderPoint || productData.lowStockThreshold || 10,
           unit: productData.unit || "piece",
           cost_price: productData.costPrice || 0,
           selling_price: productData.sellingPrice || 0,
-          markup: markup,
-          supplier_id: productData.supplierId,
-          supplier_sku: productData.supplierSku,
-          barcode: productData.barcode,
+          supplier_id: productData.supplierId || productData.vendorId,
           image_url: productData.imageUrl,
-          location: productData.location,
-          weight: productData.weight,
-          dimensions: productData.dimensions,
           created_by: user?.id,
         })
         .select()
@@ -108,10 +92,6 @@ export function useProducts() {
 
   const updateProduct = async (id: string, productData: Partial<Product>) => {
     try {
-      const markup = productData.costPrice && productData.sellingPrice
-        ? ((productData.sellingPrice - productData.costPrice) / productData.costPrice) * 100
-        : undefined;
-
       const { error } = await supabase
         .from("products")
         .update({
@@ -119,21 +99,13 @@ export function useProducts() {
           name: productData.name,
           description: productData.description,
           status: productData.status,
-          stock_quantity: productData.stockQuantity,
-          low_stock_threshold: productData.lowStockThreshold,
-          reorder_point: productData.reorderPoint,
+          current_stock: productData.stockQuantity,
+          reorder_level: productData.reorderPoint || productData.lowStockThreshold,
           unit: productData.unit,
           cost_price: productData.costPrice,
           selling_price: productData.sellingPrice,
-          markup: markup,
-          supplier_id: productData.supplierId,
-          supplier_sku: productData.supplierSku,
-          barcode: productData.barcode,
+          supplier_id: productData.supplierId || productData.vendorId,
           image_url: productData.imageUrl,
-          location: productData.location,
-          weight: productData.weight,
-          dimensions: productData.dimensions,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", id);
 
