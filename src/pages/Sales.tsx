@@ -11,7 +11,6 @@ import { SalesBulkActionsBar } from "@/components/sales/SalesBulkActionsBar";
 import { SalesAnalytics } from "@/components/sales/SalesAnalytics";
 import { SalesOrder, SalesFilters as SalesFiltersType } from "@/types/sale";
 import { useSales } from "@/hooks/useSales";
-import { useCustomers } from "@/hooks/useCustomers";
 import { useProducts } from "@/hooks/useProducts";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
@@ -26,7 +25,6 @@ const statusColors = {
 
 export default function Sales() {
   const { sales, loading: salesLoading, createSalesOrder, updateSalesOrder, deleteSalesOrders, bulkUpdateStatus } = useSales();
-  const { customers, loading: customersLoading, createCustomer } = useCustomers();
   const { products, loading: productsLoading } = useProducts();
   const [selectedSale, setSelectedSale] = useState<SalesOrder | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
@@ -166,7 +164,7 @@ export default function Sales() {
     a.click();
   };
 
-  if (salesLoading || customersLoading || productsLoading) {
+  if (salesLoading || productsLoading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
         <LoadingSpinner />
@@ -195,7 +193,7 @@ export default function Sales() {
 
       <SalesAnalytics sales={filteredSales} />
 
-      <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
+      <SalesFilters filters={filters} onFilterChange={setFilters} />
 
       <Card>
         <div className="overflow-x-auto">
@@ -266,9 +264,7 @@ export default function Sales() {
         open={showFormDialog}
         onOpenChange={setShowFormDialog}
         onSave={handleSave}
-        customers={customers}
         products={products}
-        onCreateCustomer={createCustomer}
       />
       <SalesBulkActionsBar
         selectedCount={selectedIds.size}
