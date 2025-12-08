@@ -14,34 +14,55 @@ export function useSales() {
   const fetchSales = async () => {
     try {
       setLoading(true);
+      
+      // Fetch sales orders separately, then line items
       const { data: salesData, error: salesError } = await supabase
         .from("sales_orders")
         .select(`
           *,
-          customer:customers(id, name),
-          sales_line_items(*)
+          customer:customers(id, name)
         `)
         .order("created_at", { ascending: false });
 
       if (salesError) throw salesError;
+
+      // Fetch line items for all sales
+      const salesIds = (salesData || []).map(s => s.id);
+      let lineItemsMap: Record<string, any[]> = {};
+      
+      if (salesIds.length > 0) {
+        const { data: lineItems, error: lineItemsError } = await supabase
+          .from("sales_line_items")
+          .select("*")
+          .in("sale_id", salesIds);
+        
+        if (!lineItemsError && lineItems) {
+          lineItems.forEach(item => {
+            if (!lineItemsMap[item.sale_id]) {
+              lineItemsMap[item.sale_id] = [];
+            }
+            lineItemsMap[item.sale_id].push(item);
+          });
+        }
+      }
 
       const mappedSales: SalesOrder[] = (salesData || []).map((sale) => ({
         id: sale.id,
         orderNumber: sale.order_number,
         customerId: sale.customer_id,
         customerName: sale.customer?.name || "",
-        date: sale.order_date,
+        date: sale.date,
         dueDate: sale.due_date,
         status: sale.status,
-        lineItems: (sale.sales_line_items || []).map((item: any): LineItem => ({
+        lineItems: (lineItemsMap[sale.id] || []).map((item: any): LineItem => ({
           id: item.id,
           productId: item.product_id,
-          productName: item.product_name,
-          sku: item.sku || "",
+          productName: "",
+          sku: "",
           quantity: item.quantity,
           unitPrice: item.unit_price,
-          discount: item.discount_percent || 0,
-          tax: item.tax_percent || 0,
+          discount: item.discount || 0,
+          tax: item.tax || 0,
           total: item.total,
         })),
         subtotal: sale.subtotal,
@@ -73,8 +94,8 @@ export function useSales() {
         .from("sales_orders")
         .insert({
           customer_id: orderData.customerId,
-          order_date: orderData.date,
-          due_date: orderData.dueDate,
+          date: orderData.date,
+          due_date: orderData.dueDate || orderData.date,
           status: orderData.status || "draft",
           subtotal: orderData.subtotal,
           discount_amount: orderData.discountAmount,
@@ -93,14 +114,12 @@ export function useSales() {
       // Insert line items
       if (orderData.lineItems && orderData.lineItems.length > 0) {
         const lineItemsData = orderData.lineItems.map((item) => ({
-          sales_order_id: salesOrder.id,
+          sale_id: salesOrder.id,
           product_id: item.productId,
-          product_name: item.productName,
-          sku: item.sku,
           quantity: item.quantity,
           unit_price: item.unitPrice,
-          discount_percent: item.discount,
-          tax_percent: item.tax,
+          discount: item.discount,
+          tax: item.tax,
           total: item.total,
         }));
 
@@ -128,7 +147,7 @@ export function useSales() {
         .from("sales_orders")
         .update({
           customer_id: orderData.customerId,
-          order_date: orderData.date,
+          date: orderData.date,
           due_date: orderData.dueDate,
           status: orderData.status,
           subtotal: orderData.subtotal,
@@ -149,20 +168,18 @@ export function useSales() {
         const { error: deleteError } = await supabase
           .from("sales_line_items")
           .delete()
-          .eq("sales_order_id", id);
+          .eq("sale_id", id);
 
         if (deleteError) throw deleteError;
 
         if (orderData.lineItems.length > 0) {
           const lineItemsData = orderData.lineItems.map((item) => ({
-            sales_order_id: id,
+            sale_id: id,
             product_id: item.productId,
-            product_name: item.productName,
-            sku: item.sku,
             quantity: item.quantity,
             unit_price: item.unitPrice,
-            discount_percent: item.discount,
-            tax_percent: item.tax,
+            discount: item.discount,
+            tax: item.tax,
             total: item.total,
           }));
 
