@@ -58,11 +58,10 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
   const calculateLineItem = (item: Partial<LineItem>): LineItem => {
     const quantity = item.quantity || 0;
     const unitPrice = item.unitPrice || 0;
-    const discount = item.discount || 0;
+    const discount = item.discount || 0; // Now MRU amount, not percentage
 
     const subtotal = quantity * unitPrice;
-    const discountAmount = subtotal * (discount / 100);
-    const total = subtotal - discountAmount;
+    const total = subtotal - discount;
 
     return {
       ...item,
@@ -70,16 +69,13 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
       unitPrice,
       discount,
       tax: 0,
-      total,
+      total: Math.max(0, total),
     } as LineItem;
   };
 
   const calculateTotals = (items: LineItem[]) => {
     const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const discountAmount = items.reduce((sum, item) => {
-      const itemSubtotal = item.quantity * item.unitPrice;
-      return sum + (itemSubtotal * (item.discount / 100));
-    }, 0);
+    const discountAmount = items.reduce((sum, item) => sum + (item.discount || 0), 0);
     const total = items.reduce((sum, item) => sum + item.total, 0);
 
     return { subtotal, discountAmount, taxAmount: 0, total };
@@ -282,15 +278,6 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -310,7 +297,7 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
                       <th className="text-left p-2 text-sm">Product</th>
                       <th className="text-right p-2 text-sm">Qty</th>
                       <th className="text-right p-2 text-sm">Price</th>
-                      <th className="text-right p-2 text-sm">Disc%</th>
+                      <th className="text-right p-2 text-sm">Disc (MRU)</th>
                       <th className="text-right p-2 text-sm">Total</th>
                       <th className="p-2 text-sm"></th>
                     </tr>
@@ -358,10 +345,11 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
                           <Input
                             type="number"
                             min="0"
-                            max="100"
+                            step="0.01"
                             value={item.discount}
                             onChange={(e) => updateLineItem(index, "discount", parseFloat(e.target.value) || 0)}
-                            className="w-20 text-right"
+                            className="w-24 text-right"
+                            placeholder="0.00"
                           />
                         </td>
                         <td className="p-2 text-right font-medium">{item.total.toFixed(2)} MRU</td>

@@ -51,8 +51,8 @@ export function useSales() {
         orderNumber: sale.order_number,
         customerId: sale.customer_id,
         customerName: sale.customer?.name || "",
-        date: sale.date,
-        dueDate: sale.due_date,
+        date: sale.order_date,
+        dueDate: sale.order_date,
         status: sale.status,
         lineItems: (lineItemsMap[sale.id] || []).map((item: any): LineItem => ({
           id: item.id,
@@ -94,8 +94,7 @@ export function useSales() {
         .from("sales_orders")
         .insert({
           customer_id: orderData.customerId,
-          date: orderData.date,
-          due_date: orderData.dueDate || orderData.date,
+          order_date: orderData.date,
           status: orderData.status || "draft",
           subtotal: orderData.subtotal,
           discount_amount: orderData.discountAmount,
@@ -147,8 +146,7 @@ export function useSales() {
         .from("sales_orders")
         .update({
           customer_id: orderData.customerId,
-          date: orderData.date,
-          due_date: orderData.dueDate,
+          order_date: orderData.date,
           status: orderData.status,
           subtotal: orderData.subtotal,
           discount_amount: orderData.discountAmount,
