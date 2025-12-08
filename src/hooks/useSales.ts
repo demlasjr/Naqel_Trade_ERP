@@ -93,6 +93,7 @@ export function useSales() {
       const { data: salesOrder, error: orderError } = await supabase
         .from("sales_orders")
         .insert({
+          order_number: orderData.orderNumber,
           customer_id: orderData.customerId,
           order_date: orderData.date,
           status: orderData.status || "draft",

@@ -24,6 +24,7 @@ interface SalesFormDialogProps {
 export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, products, onCreateCustomer }: SalesFormDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<Partial<SalesOrder>>({
+    orderNumber: "",
     customerId: "",
     date: new Date().toISOString().split("T")[0],
     dueDate: "",
@@ -41,6 +42,7 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
       setFormData(sale);
     } else {
       setFormData({
+        orderNumber: "",
         customerId: "",
         date: new Date().toISOString().split("T")[0],
         dueDate: "",
@@ -147,6 +149,10 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
   };
 
   const handleSubmit = async () => {
+    if (!formData.orderNumber?.trim()) {
+      toast({ title: "Error", description: "Please enter an order number", variant: "destructive" });
+      return;
+    }
     if (!formData.customerId) {
       toast({ title: "Error", description: "Please select a customer", variant: "destructive" });
       return;
@@ -183,7 +189,17 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="orderNumber">Order Number *</Label>
+              <Input
+                id="orderNumber"
+                value={formData.orderNumber || ""}
+                onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
+                placeholder="e.g., SO-001"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="customer">Customer *</Label>
               {!showNewCustomer ? (
