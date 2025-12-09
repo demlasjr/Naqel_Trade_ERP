@@ -43,7 +43,7 @@ export function useUsers() {
         avatar: profile.avatar_url,
         createdAt: profile.created_at,
         lastLogin: profile.last_login,
-      } as User));
+      })) as User[];
     },
     staleTime: 60000, // Cache for 1 minute
   });

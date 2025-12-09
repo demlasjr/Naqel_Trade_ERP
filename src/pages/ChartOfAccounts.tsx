@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Download, BarChart3, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +33,18 @@ export default function ChartOfAccounts() {
     deleteAccount: deleteAccountMutation,
     bulkDeleteAccounts,
     bulkUpdateStatus,
-    importAccounts
+    importAccounts,
+    refetch: refetchAccounts
   } = useAccounts();
+  
+  // Force refetch accounts periodically to ensure balances are up to date
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchAccounts();
+    }, 10000); // Refetch every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, [refetchAccounts]);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<AccountType | 'all'>('all');

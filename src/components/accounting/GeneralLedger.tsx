@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -23,10 +23,20 @@ import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
 
 export default function GeneralLedger() {
-  const { accounts, isLoading: isLoadingAccounts } = useAccounts();
-  const { transactions, isLoading: isLoadingTransactions } = useTransactions();
+  const { accounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions, refetch: refetchTransactions } = useTransactions();
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [search, setSearch] = useState("");
+
+  // Force refetch periodically to ensure data is fresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchAccounts();
+      refetchTransactions();
+    }, 15000); // Refetch every 15 seconds
+    
+    return () => clearInterval(interval);
+  }, [refetchAccounts, refetchTransactions]);
 
   // Set default selected account when accounts load
   const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];

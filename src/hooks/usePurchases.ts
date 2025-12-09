@@ -263,10 +263,14 @@ export function usePurchases() {
 
             if (cashAccount) {
               const newBalance = Math.max(0, (cashAccount.balance || 0) - purchaseData.total);
-              await supabase
+              const { error: updateCashError } = await supabase
                 .from("accounts")
-                .update({ balance: newBalance })
+                .update({ balance: newBalance, updated_at: new Date().toISOString() })
                 .eq("id", cashAccountId);
+              
+              if (updateCashError) {
+                console.error("Error updating cash account balance:", updateCashError);
+              }
             }
 
             // Update expense account balance (increase for expense)
@@ -278,10 +282,14 @@ export function usePurchases() {
 
             if (expenseAccount) {
               const newBalance = (expenseAccount.balance || 0) + purchaseData.total;
-              await supabase
+              const { error: updateExpenseError } = await supabase
                 .from("accounts")
-                .update({ balance: newBalance })
+                .update({ balance: newBalance, updated_at: new Date().toISOString() })
                 .eq("id", expenseAccountId);
+              
+              if (updateExpenseError) {
+                console.error("Error updating expense account balance:", updateExpenseError);
+              }
             }
           }
         } else {
@@ -311,13 +319,19 @@ export function usePurchases() {
       }
 
       // Invalidate and refetch queries to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["vendors"] });
-      // Force refetch to ensure balances are updated
-      queryClient.refetchQueries({ queryKey: ["accounts"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["vendors"] }),
+      ]);
+      
+      // Force immediate refetch to ensure balances are updated
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["accounts"] }),
+        queryClient.refetchQueries({ queryKey: ["transactions"] }),
+      ]);
 
       return purchaseOrder;
     },

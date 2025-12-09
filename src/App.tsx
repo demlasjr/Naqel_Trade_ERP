@@ -24,6 +24,7 @@ const HRPayroll = lazy(() => import("./pages/HRPayroll"));
 const ActivityLog = lazy(() => import("./pages/ActivityLog"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
 const RolesPermissions = lazy(() => import("./pages/RolesPermissions"));
+const BackupRestore = lazy(() => import("./pages/BackupRestore"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/activity-log" element={<ActivityLog />} />
                 <Route path="/user-management" element={<UserManagement />} />
                 <Route path="/roles-permissions" element={<RolesPermissions />} />
+                <Route path="/backup-restore" element={<BackupRestore />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { TrendingUp, TrendingDown, DollarSign, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -49,9 +49,9 @@ export default function AccountingAnalytics() {
         acc[monthKey] = { month: monthKey, revenue: 0, expenses: 0, profit: 0 };
       }
       
-      if ((txn.type === 'sale' || txn.type === 'receipt') && (txn.status === 'posted' || txn.status === 'completed')) {
+      if ((txn.type === 'sale' || txn.type === 'receipt') && txn.status === 'posted') {
         acc[monthKey].revenue += txn.amount;
-      } else if ((txn.type === 'expense' || txn.type === 'purchase' || txn.type === 'payment') && (txn.status === 'posted' || txn.status === 'completed')) {
+      } else if ((txn.type === 'expense' || txn.type === 'purchase' || txn.type === 'payment') && txn.status === 'posted') {
         acc[monthKey].expenses += txn.amount;
       }
       

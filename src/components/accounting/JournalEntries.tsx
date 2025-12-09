@@ -261,7 +261,7 @@ export default function JournalEntries() {
                         MRU {entry.amount.toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={entry.status === 'posted' || entry.status === 'completed' ? 'default' : 'secondary'}>
+                        <Badge variant={entry.status === 'posted' ? 'default' : 'secondary'}>
                           {entry.status}
                         </Badge>
                       </TableCell>

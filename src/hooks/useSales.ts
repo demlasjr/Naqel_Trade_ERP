@@ -314,10 +314,14 @@ export function useSales() {
 
             if (cashAccount) {
               const newBalance = (cashAccount.balance || 0) + orderData.total;
-              await supabase
+              const { error: updateCashError } = await supabase
                 .from("accounts")
-                .update({ balance: newBalance })
+                .update({ balance: newBalance, updated_at: new Date().toISOString() })
                 .eq("id", cashAccountId);
+              
+              if (updateCashError) {
+                console.error("Error updating cash account balance:", updateCashError);
+              }
             }
 
             // Update revenue account balance (increase for revenue)
@@ -329,10 +333,14 @@ export function useSales() {
 
             if (revenueAccount) {
               const newBalance = (revenueAccount.balance || 0) + orderData.total;
-              await supabase
+              const { error: updateRevenueError } = await supabase
                 .from("accounts")
-                .update({ balance: newBalance })
+                .update({ balance: newBalance, updated_at: new Date().toISOString() })
                 .eq("id", revenueAccountId);
+              
+              if (updateRevenueError) {
+                console.error("Error updating revenue account balance:", updateRevenueError);
+              }
             }
           }
         } else {
@@ -362,14 +370,20 @@ export function useSales() {
       }
 
       // Invalidate and refetch queries to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      // Force refetch to ensure balances are updated
-      queryClient.refetchQueries({ queryKey: ["accounts"] });
-      queryClient.refetchQueries({ queryKey: ["customers"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["customers"] }),
+      ]);
+      
+      // Force immediate refetch to ensure balances are updated
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["accounts"] }),
+        queryClient.refetchQueries({ queryKey: ["customers"] }),
+        queryClient.refetchQueries({ queryKey: ["transactions"] }),
+      ]);
 
       toast.success("Sales order created successfully");
       await fetchSales();

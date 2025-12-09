@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Account, AccountType, AccountStatus } from "@/types/account";
 import { toast } from "@/lib/toast";
@@ -18,9 +18,10 @@ export function useAccounts() {
           schema: 'public',
           table: 'accounts'
         },
-        (payload) => {
+        async (payload) => {
           console.log('Account change detected:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["accounts"] });
+          await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+          await queryClient.refetchQueries({ queryKey: ["accounts"] });
         }
       )
       .subscribe();
@@ -55,7 +56,7 @@ export function useAccounts() {
         name: acc.name,
         type: typeMap[acc.account_type] || 'Assets' as AccountType,
         parentId: acc.parent_id,
-        balance: acc.balance,
+        balance: Number(acc.balance) || 0, // Ensure balance is a number
         description: acc.description,
         status: acc.status as AccountStatus,
         isImported: acc.is_imported || false,
@@ -65,6 +66,7 @@ export function useAccounts() {
     },
     staleTime: 0, // Always consider data stale to ensure fresh updates
     refetchOnWindowFocus: true,
+    refetchInterval: false, // Don't auto-refetch, but allow manual refetch
   });
 
   const createAccount = useMutation({
@@ -281,10 +283,17 @@ export function useAccounts() {
     },
   });
 
+  // Memoize refetch function to prevent unnecessary re-renders
+  const refetch = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    return queryClient.refetchQueries({ queryKey: ["accounts"] });
+  }, [queryClient]);
+
   return {
     accounts: accountsQuery.data ?? [],
     isLoading: accountsQuery.isLoading,
     error: accountsQuery.error,
+    refetch,
     createAccount: createAccount.mutateAsync,
     updateAccount: updateAccount.mutateAsync,
     deleteAccount: deleteAccount.mutateAsync,

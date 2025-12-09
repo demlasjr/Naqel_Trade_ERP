@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Transaction, TransactionType } from "@/types/transaction";
 import { toast } from "@/lib/toast";
@@ -18,11 +18,17 @@ export function useTransactions() {
           schema: 'public',
           table: 'transactions'
         },
-        (payload) => {
+        async (payload) => {
           console.log('Transaction change detected:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-          queryClient.invalidateQueries({ queryKey: ["accounts"] });
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+            queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+            queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+          ]);
+          await Promise.all([
+            queryClient.refetchQueries({ queryKey: ["transactions"] }),
+            queryClient.refetchQueries({ queryKey: ["accounts"] }),
+          ]);
         }
       )
       .subscribe();
@@ -93,8 +99,14 @@ export function useTransactions() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["transactions"] });
+      await queryClient.refetchQueries({ queryKey: ["accounts"] });
       toast.success("Transaction created successfully");
     },
     onError: (error: Error) => {
@@ -119,8 +131,14 @@ export function useTransactions() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["transactions"] });
+      await queryClient.refetchQueries({ queryKey: ["accounts"] });
       toast.success("Transaction updated successfully");
     },
     onError: (error: Error) => {
@@ -133,8 +151,13 @@ export function useTransactions() {
       const { error } = await supabase.from("transactions").delete().in("id", ids);
       if (error) throw error;
     },
-    onSuccess: (_, ids) => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    onSuccess: async (_, ids) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["transactions"] });
+      await queryClient.refetchQueries({ queryKey: ["accounts"] });
       toast.success(`${ids.length} transaction(s) deleted successfully`);
     },
     onError: (error: Error) => {
@@ -151,8 +174,13 @@ export function useTransactions() {
 
       if (error) throw error;
     },
-    onSuccess: (_, { ids }) => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    onSuccess: async (_, { ids }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+      ]);
+      await queryClient.refetchQueries({ queryKey: ["transactions"] });
+      await queryClient.refetchQueries({ queryKey: ["accounts"] });
       toast.success(`${ids.length} transaction(s) updated successfully`);
     },
     onError: (error: Error) => {
@@ -160,10 +188,17 @@ export function useTransactions() {
     },
   });
 
+  // Memoize refetch function to prevent unnecessary re-renders
+  const refetch = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    return queryClient.refetchQueries({ queryKey: ["transactions"] });
+  }, [queryClient]);
+
   return {
     transactions: transactionsQuery.data ?? [],
     isLoading: transactionsQuery.isLoading,
     error: transactionsQuery.error,
+    refetch,
     createTransaction: createTransaction.mutateAsync,
     updateTransaction: updateTransaction.mutateAsync,
     deleteTransactions: deleteTransactions.mutateAsync,

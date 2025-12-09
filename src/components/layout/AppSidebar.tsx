@@ -11,6 +11,7 @@ import {
   Activity,
   Shield,
   LogOut,
+  Database,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -78,6 +79,11 @@ const menuItems = [
     title: "User Management",
     url: "/user-management",
     icon: Shield,
+  },
+  {
+    title: "Backup & Restore",
+    url: "/backup-restore",
+    icon: Database,
   },
 ];
 
