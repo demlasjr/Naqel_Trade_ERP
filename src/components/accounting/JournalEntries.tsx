@@ -35,13 +35,16 @@ import { format } from "date-fns";
 
 export default function JournalEntries() {
   const [open, setOpen] = useState(false);
+  const [showAll, setShowAll] = useState(true); // Show all transactions by default
   const { accounts, isLoading: isLoadingAccounts } = useAccounts();
   const { transactions, isLoading: isLoadingTransactions, createTransaction } = useTransactions();
 
-  // Filter transactions that are journal entries (adjustments or manual entries)
-  const journalEntries = transactions.filter(t => 
-    t.type === 'adjustment' || t.type === 'transfer'
-  );
+  // Filter transactions - show all by default, or only journal entries if filter is off
+  const journalEntries = showAll 
+    ? transactions 
+    : transactions.filter(t => 
+        t.type === 'adjustment' || t.type === 'transfer'
+      );
 
   const [newEntry, setNewEntry] = useState({
     date: '',
@@ -83,10 +86,25 @@ export default function JournalEntries() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Journal Entries</h2>
-          <p className="text-muted-foreground">Record manual accounting entries</p>
+          <h2 className="text-2xl font-bold">Journal Entries & Transactions</h2>
+          <p className="text-muted-foreground">
+            {showAll ? "All transactions from sales, purchases, and manual entries" : "Record manual accounting entries"}
+          </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex gap-2">
+          <Button
+            variant={showAll ? "default" : "outline"}
+            onClick={() => setShowAll(true)}
+          >
+            All Transactions
+          </Button>
+          <Button
+            variant={!showAll ? "default" : "outline"}
+            onClick={() => setShowAll(false)}
+          >
+            Journal Entries Only
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -185,6 +203,7 @@ export default function JournalEntries() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -200,8 +219,11 @@ export default function JournalEntries() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead>Account From</TableHead>
+                  <TableHead>Account To</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -209,8 +231,8 @@ export default function JournalEntries() {
               <TableBody>
                 {journalEntries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No journal entries found
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No transactions found
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -222,13 +244,24 @@ export default function JournalEntries() {
                           {format(new Date(entry.date), 'MMM dd, yyyy')}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {entry.type}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="font-mono">{entry.reference || '-'}</TableCell>
                       <TableCell>{entry.description}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {entry.accountFrom || '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {entry.accountTo || '-'}
+                      </TableCell>
                       <TableCell className="text-right font-medium">
                         MRU {entry.amount.toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={entry.status === 'posted' ? 'default' : 'secondary'}>
+                        <Badge variant={entry.status === 'posted' || entry.status === 'completed' ? 'default' : 'secondary'}>
                           {entry.status}
                         </Badge>
                       </TableCell>
