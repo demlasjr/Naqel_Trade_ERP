@@ -46,14 +46,16 @@ export function useTransactions() {
 
       if (error) throw error;
 
-      return data.map((t: any) => ({
+      return (data || []).map((t: any) => ({
         id: t.id,
         date: t.date,
         type: t.type as TransactionType,
         accountFrom: t.account_from_data?.name || "",
         accountTo: t.account_to_data?.name || "",
+        accountFromId: t.account_from,
+        accountToId: t.account_to,
         description: t.description,
-        amount: t.amount,
+        amount: Number(t.amount) || 0,
         reference: t.reference,
         status: t.status,
         notes: t.notes,
@@ -62,6 +64,8 @@ export function useTransactions() {
         updatedAt: t.updated_at,
       })) as Transaction[];
     },
+    staleTime: 0, // Always consider data stale to ensure fresh updates
+    refetchOnWindowFocus: true,
   });
 
   const createTransaction = useMutation({

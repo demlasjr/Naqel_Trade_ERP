@@ -49,9 +49,9 @@ export default function AccountingAnalytics() {
         acc[monthKey] = { month: monthKey, revenue: 0, expenses: 0, profit: 0 };
       }
       
-      if (txn.type === 'sale' && txn.status === 'posted') {
+      if ((txn.type === 'sale' || txn.type === 'receipt') && (txn.status === 'posted' || txn.status === 'completed')) {
         acc[monthKey].revenue += txn.amount;
-      } else if (txn.type === 'expense' && txn.status === 'posted') {
+      } else if ((txn.type === 'expense' || txn.type === 'purchase' || txn.type === 'payment') && (txn.status === 'posted' || txn.status === 'completed')) {
         acc[monthKey].expenses += txn.amount;
       }
       
