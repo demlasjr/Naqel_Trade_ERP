@@ -46,7 +46,7 @@ END $$;
 
 -- Transaction Status
 DO $$ BEGIN
-    CREATE TYPE transaction_status AS ENUM ('pending', 'completed', 'cancelled');
+    CREATE TYPE transaction_status AS ENUM ('pending', 'posted', 'reconciled', 'void');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     account_from UUID REFERENCES accounts(id),
     account_to UUID REFERENCES accounts(id),
     amount DECIMAL(15, 2) NOT NULL,
-    status transaction_status DEFAULT 'pending',
+    status TEXT DEFAULT 'pending', -- Using TEXT for flexibility with status values
     reference TEXT,
     notes TEXT,
     created_by UUID REFERENCES profiles(id),

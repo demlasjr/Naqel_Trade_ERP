@@ -7,6 +7,21 @@ import { toast } from "@/lib/toast";
 export function useTransactions() {
   const queryClient = useQueryClient();
 
+  // Initial data fetch on mount
+  useEffect(() => {
+    console.log("[useTransactions] Hook mounted, checking connection...");
+    
+    // Test connection
+    supabase.from("transactions").select("count", { count: 'exact', head: true })
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("[useTransactions] Connection test failed:", error);
+        } else {
+          console.log("[useTransactions] Connection OK, transactions count:", count);
+        }
+      });
+  }, []);
+
   // Subscribe to realtime changes
   useEffect(() => {
     const channel = supabase
@@ -19,7 +34,7 @@ export function useTransactions() {
           table: 'transactions'
         },
         async (payload) => {
-          console.log('Transaction change detected:', payload.eventType);
+          console.log('[useTransactions] Realtime change detected:', payload.eventType);
           await Promise.all([
             queryClient.invalidateQueries({ queryKey: ["transactions"] }),
             queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
@@ -31,7 +46,9 @@ export function useTransactions() {
           ]);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[useTransactions] Realtime subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -41,18 +58,49 @@ export function useTransactions() {
   const transactionsQuery = useQuery({
     queryKey: ["transactions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select(`
-          *,
-          account_from_data:accounts!transactions_account_from_fkey(id, name, code),
-          account_to_data:accounts!transactions_account_to_fkey(id, name, code)
-        `)
-        .order("date", { ascending: false });
+      console.log("[useTransactions] Fetching transactions...");
+      
+      // Try with join first, fallback to simple query if it fails
+      let data: any[] | null = null;
+      let error: any = null;
+      
+      try {
+        const result = await supabase
+          .from("transactions")
+          .select(`
+            *,
+            account_from_data:accounts!transactions_account_from_fkey(id, name, code),
+            account_to_data:accounts!transactions_account_to_fkey(id, name, code)
+          `)
+          .order("date", { ascending: false });
+        
+        data = result.data;
+        error = result.error;
+      } catch (e) {
+        console.warn("[useTransactions] Join query failed, trying simple query:", e);
+        // Fallback to simple query without joins
+        const result = await supabase
+          .from("transactions")
+          .select("*")
+          .order("date", { ascending: false });
+        
+        data = result.data;
+        error = result.error;
+      }
 
-      if (error) throw error;
+      if (error) {
+        console.error("[useTransactions] Error fetching transactions:", error);
+        throw error;
+      }
+      
+      console.log("[useTransactions] Fetched transactions:", data?.length || 0);
 
-      return (data || []).map((t: any) => ({
+      if (!data || data.length === 0) {
+        console.log("[useTransactions] No transactions found");
+        return [];
+      }
+
+      return data.map((t: any) => ({
         id: t.id,
         date: t.date,
         type: t.type as TransactionType,
@@ -70,8 +118,10 @@ export function useTransactions() {
         updatedAt: t.updated_at,
       })) as Transaction[];
     },
-    staleTime: 0, // Always consider data stale to ensure fresh updates
+    staleTime: 0,
     refetchOnWindowFocus: true,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const createTransaction = useMutation({

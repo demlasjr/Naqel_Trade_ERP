@@ -36,8 +36,11 @@ import { format } from "date-fns";
 export default function JournalEntries() {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(true); // Show all transactions by default
-  const { accounts, isLoading: isLoadingAccounts } = useAccounts();
-  const { transactions, isLoading: isLoadingTransactions, createTransaction } = useTransactions();
+  const { accounts, isLoading: isLoadingAccounts, error: accountsError, refetch: refetchAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions, error: transactionsError, refetch: refetchTransactions, createTransaction } = useTransactions();
+
+  // Debug logging
+  console.log("[JournalEntries] accounts:", accounts?.length || 0, "transactions:", transactions?.length || 0);
 
   // Filter transactions - show all by default, or only journal entries if filter is off
   const journalEntries = showAll 
@@ -79,7 +82,33 @@ export default function JournalEntries() {
   };
 
   if (isLoadingAccounts || isLoadingTransactions) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <LoadingSpinner />
+        <p className="text-muted-foreground">Loading journal entries...</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (accountsError || transactionsError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-destructive font-medium">Error loading data</p>
+        <p className="text-sm text-muted-foreground">
+          {accountsError?.message || transactionsError?.message || "Unknown error"}
+        </p>
+        <button 
+          onClick={() => {
+            refetchAccounts();
+            refetchTransactions();
+          }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

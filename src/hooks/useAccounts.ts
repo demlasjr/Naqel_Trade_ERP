@@ -7,6 +7,21 @@ import { toast } from "@/lib/toast";
 export function useAccounts() {
   const queryClient = useQueryClient();
 
+  // Initial data fetch on mount
+  useEffect(() => {
+    console.log("[useAccounts] Hook mounted, checking connection...");
+    
+    // Test connection
+    supabase.from("accounts").select("count", { count: 'exact', head: true })
+      .then(({ count, error }) => {
+        if (error) {
+          console.error("[useAccounts] Connection test failed:", error);
+        } else {
+          console.log("[useAccounts] Connection OK, accounts count:", count);
+        }
+      });
+  }, []);
+
   // Subscribe to realtime changes
   useEffect(() => {
     const channel = supabase
@@ -19,12 +34,14 @@ export function useAccounts() {
           table: 'accounts'
         },
         async (payload) => {
-          console.log('Account change detected:', payload.eventType);
+          console.log('[useAccounts] Realtime change detected:', payload.eventType);
           await queryClient.invalidateQueries({ queryKey: ["accounts"] });
           await queryClient.refetchQueries({ queryKey: ["accounts"] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[useAccounts] Realtime subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -34,12 +51,24 @@ export function useAccounts() {
   const accountsQuery = useQuery({
     queryKey: ["accounts"],
     queryFn: async () => {
+      console.log("[useAccounts] Fetching accounts...");
+      
       const { data, error } = await supabase
         .from("accounts")
         .select("*")
         .order("code");
 
-      if (error) throw error;
+      if (error) {
+        console.error("[useAccounts] Error fetching accounts:", error);
+        throw error;
+      }
+      
+      console.log("[useAccounts] Fetched accounts:", data?.length || 0);
+      
+      if (!data || data.length === 0) {
+        console.log("[useAccounts] No accounts found in database");
+        return [];
+      }
       
       // Map database enum values to AccountType (capitalize first letter)
       const typeMap: Record<string, AccountType> = {
@@ -50,23 +79,27 @@ export function useAccounts() {
         'expense': 'Expenses',
       };
       
-      return data.map((acc) => ({
+      const mappedAccounts = data.map((acc) => ({
         id: acc.id,
         code: acc.code,
         name: acc.name,
         type: typeMap[acc.account_type] || 'Assets' as AccountType,
         parentId: acc.parent_id,
-        balance: Number(acc.balance) || 0, // Ensure balance is a number
+        balance: Number(acc.balance) || 0,
         description: acc.description,
         status: acc.status as AccountStatus,
         isImported: acc.is_imported || false,
         createdAt: new Date(acc.created_at),
         updatedAt: new Date(acc.updated_at),
       })) as Account[];
+      
+      console.log("[useAccounts] Mapped accounts:", mappedAccounts.length);
+      return mappedAccounts;
     },
-    staleTime: 0, // Always consider data stale to ensure fresh updates
+    staleTime: 0,
     refetchOnWindowFocus: true,
-    refetchInterval: false, // Don't auto-refetch, but allow manual refetch
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const createAccount = useMutation({
