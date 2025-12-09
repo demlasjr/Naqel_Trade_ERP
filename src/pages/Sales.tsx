@@ -228,65 +228,66 @@ export default function Sales() {
           <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
 
           <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b bg-muted/50">
-              <tr>
-                <th className="p-4 text-left">
-                  <Checkbox
-                    checked={selectedIds.size === filteredSales.length && filteredSales.length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </th>
-                <th className="p-4 text-left font-medium">Order #</th>
-                <th className="p-4 text-left font-medium">Customer</th>
-                <th className="p-4 text-left font-medium">Date</th>
-                <th className="p-4 text-left font-medium">Due Date</th>
-                <th className="p-4 text-left font-medium">Status</th>
-                <th className="p-4 text-right font-medium">Total</th>
-                <th className="p-4 text-right font-medium">Paid</th>
-                <th className="p-4 text-right font-medium">Balance</th>
-                <th className="p-4 text-center font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSales.map((sale) => (
-                <tr key={sale.id} className="border-b hover:bg-muted/50 transition-colors">
-                  <td className="p-4">
-                    <Checkbox
-                      checked={selectedIds.has(sale.id)}
-                      onCheckedChange={(checked) => handleSelectOne(sale.id, checked as boolean)}
-                    />
-                  </td>
-                  <td className="p-4 font-medium">{sale.orderNumber}</td>
-                  <td className="p-4">{sale.customerName}</td>
-                  <td className="p-4">{format(new Date(sale.date), "PP")}</td>
-                  <td className="p-4">{format(new Date(sale.dueDate), "PP")}</td>
-                  <td className="p-4">
-                    <Badge className={statusColors[sale.status]}>
-                      {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
-                    </Badge>
-                  </td>
-                  <td className="p-4 text-right font-medium">MRU {sale.total.toFixed(2)}</td>
-                  <td className="p-4 text-right text-green-600">MRU {sale.paidAmount.toFixed(2)}</td>
-                  <td className="p-4 text-right text-orange-600">MRU {sale.balance.toFixed(2)}</td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleViewDetails(sale)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b bg-muted/50">
+                  <tr>
+                    <th className="p-4 text-left">
+                      <Checkbox
+                        checked={selectedIds.size === filteredSales.length && filteredSales.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
+                    <th className="p-4 text-left font-medium">Order #</th>
+                    <th className="p-4 text-left font-medium">Customer</th>
+                    <th className="p-4 text-left font-medium">Date</th>
+                    <th className="p-4 text-left font-medium">Due Date</th>
+                    <th className="p-4 text-left font-medium">Status</th>
+                    <th className="p-4 text-right font-medium">Total</th>
+                    <th className="p-4 text-right font-medium">Paid</th>
+                    <th className="p-4 text-right font-medium">Balance</th>
+                    <th className="p-4 text-center font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSales.map((sale) => (
+                    <tr key={sale.id} className="border-b hover:bg-muted/50 transition-colors">
+                      <td className="p-4">
+                        <Checkbox
+                          checked={selectedIds.has(sale.id)}
+                          onCheckedChange={(checked) => handleSelectOne(sale.id, checked as boolean)}
+                        />
+                      </td>
+                      <td className="p-4 font-medium">{sale.orderNumber}</td>
+                      <td className="p-4">{sale.customerName}</td>
+                      <td className="p-4">{format(new Date(sale.date), "PP")}</td>
+                      <td className="p-4">{format(new Date(sale.dueDate), "PP")}</td>
+                      <td className="p-4">
+                        <Badge className={statusColors[sale.status]}>
+                          {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-right font-medium">MRU {sale.total.toFixed(2)}</td>
+                      <td className="p-4 text-right text-green-600">MRU {sale.paidAmount.toFixed(2)}</td>
+                      <td className="p-4 text-right text-orange-600">MRU {sale.balance.toFixed(2)}</td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleViewDetails(sale)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           <SalesDetailDialog sale={selectedSale} open={showDetailDialog} onOpenChange={setShowDetailDialog} />
