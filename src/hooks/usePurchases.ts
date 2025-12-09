@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PurchaseOrder, PurchaseStatus } from "@/types/purchase";
 import { toast } from "@/lib/toast";
@@ -7,6 +8,31 @@ import { useActivityLogs } from "./useActivityLog";
 export function usePurchases() {
   const queryClient = useQueryClient();
   const { createActivityLog } = useActivityLogs();
+
+  // Subscribe to realtime changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('purchases_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'purchase_orders'
+        },
+        (payload) => {
+          console.log('Purchase order change detected:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["purchases"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const purchasesQuery = useQuery({
     queryKey: ["purchases"],

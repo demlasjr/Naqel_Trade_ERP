@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardKPIs {
@@ -14,100 +15,138 @@ interface DashboardKPIs {
   expensesTrend: number;
   profitTrend: number;
   inventoryTrend: number;
+  // Additional metrics
+  paidAmount: number;
+  outstandingAmount: number;
+  totalOrders: number;
 }
 
 export function useDashboardKPIs(dateRange: string) {
-  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
+  // Subscribe to realtime changes for dashboard updates
   useEffect(() => {
-    async function fetchKPIs() {
-      setIsLoading(true);
-      try {
-        const startDate = getStartDate(dateRange);
+    const channels = [
+      supabase
+        .channel('dashboard_sales')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_orders' }, () => {
+          queryClient.invalidateQueries({ queryKey: ['dashboard', dateRange] });
+        })
+        .subscribe(),
+      supabase
+        .channel('dashboard_transactions')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
+          queryClient.invalidateQueries({ queryKey: ['dashboard', dateRange] });
+        })
+        .subscribe(),
+      supabase
+        .channel('dashboard_products')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+          queryClient.invalidateQueries({ queryKey: ['dashboard', dateRange] });
+        })
+        .subscribe(),
+    ];
 
-        // Fetch sales revenue
-        const { data: salesData } = await supabase
-          .from('sales_orders')
-          .select('total_amount, created_at')
-          .gte('created_at', startDate);
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [queryClient, dateRange]);
 
-        // Fetch transactions for expenses
-        const { data: transactionsData } = await supabase
-          .from('transactions')
-          .select('amount, transaction_type, created_at')
-          .gte('created_at', startDate);
+  const { data: kpis, isLoading, error, refetch } = useQuery({
+    queryKey: ['dashboard', dateRange],
+    queryFn: async () => {
+      const startDate = getStartDate(dateRange);
 
-        // Fetch products for inventory value and low stock
-        const { data: productsData } = await supabase
-          .from('products')
-          .select('current_stock, unit_price, reorder_level, status');
+      // Fetch sales revenue with paid amounts
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales_orders')
+        .select('total, paid_amount, balance, status, created_at')
+        .gte('created_at', startDate);
 
-        const totalRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
-        const totalExpenses = transactionsData
-          ?.filter(t => t.transaction_type === 'expense')
-          .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0) || 0;
+      if (salesError) throw salesError;
 
-        const activeProducts = productsData?.filter(p => p.status === 'active') || [];
-        const inventoryValue = activeProducts.reduce(
-          (sum, p) => sum + (Number(p.current_stock) * Number(p.unit_price)), 
-          0
-        );
-        const lowStockCount = activeProducts.filter(
-          p => p.current_stock <= p.reorder_level
-        ).length;
+      // Fetch transactions for expenses
+      const { data: transactionsData, error: transError } = await supabase
+        .from('transactions')
+        .select('amount, type, created_at')
+        .gte('created_at', startDate);
 
-        // Calculate trends (simplified - comparing to previous period)
-        const previousStartDate = getPreviousStartDate(dateRange);
-        
-        const { data: previousSales } = await supabase
-          .from('sales_orders')
-          .select('total_amount')
-          .gte('created_at', previousStartDate)
-          .lt('created_at', startDate);
+      if (transError) throw transError;
 
-        const { data: previousTransactions } = await supabase
-          .from('transactions')
-          .select('amount, transaction_type')
-          .gte('created_at', previousStartDate)
-          .lt('created_at', startDate);
+      // Fetch products for inventory value and low stock
+      const { data: productsData, error: prodError } = await supabase
+        .from('products')
+        .select('current_stock, selling_price, reorder_level, status');
 
-        const previousRevenue = previousSales?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
-        const previousExpenses = previousTransactions
-          ?.filter(t => t.transaction_type === 'expense')
-          .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0) || 0;
+      if (prodError) throw prodError;
 
-        const revenueTrend = calculateTrend(totalRevenue, previousRevenue);
-        const expensesTrend = calculateTrend(totalExpenses, previousExpenses);
-        const netProfit = totalRevenue - totalExpenses;
-        const previousProfit = previousRevenue - previousExpenses;
-        const profitTrend = calculateTrend(netProfit, previousProfit);
+      const totalRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
+      const paidAmount = salesData?.reduce((sum, sale) => sum + Number(sale.paid_amount || 0), 0) || 0;
+      const outstandingAmount = salesData?.reduce((sum, sale) => sum + Number(sale.balance || 0), 0) || 0;
+      const totalOrders = salesData?.length || 0;
+      
+      const totalExpenses = transactionsData
+        ?.filter(t => t.type === 'expense' || t.type === 'purchase')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0) || 0;
 
-        setKpis({
-          totalRevenue,
-          totalExpenses,
-          netProfit,
-          inventoryValue,
-          lowStockCount,
-          totalTransactions: transactionsData?.length || 0,
-          avgOrderValue: salesData && salesData.length > 0 ? totalRevenue / salesData.length : 0,
-          activeProducts: activeProducts.length,
-          revenueTrend,
-          expensesTrend,
-          profitTrend,
-          inventoryTrend: 0, // Placeholder for inventory trend calculation
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard KPIs:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+      const activeProducts = productsData?.filter(p => p.status === 'active') || [];
+      const inventoryValue = activeProducts.reduce(
+        (sum, p) => sum + (Number(p.current_stock || 0) * Number(p.selling_price || 0)), 
+        0
+      );
+      const lowStockCount = activeProducts.filter(
+        p => (p.current_stock || 0) <= (p.reorder_level || 0)
+      ).length;
 
-    fetchKPIs();
-  }, [dateRange]);
+      // Calculate trends (simplified - comparing to previous period)
+      const previousStartDate = getPreviousStartDate(dateRange);
+      
+      const { data: previousSales } = await supabase
+        .from('sales_orders')
+        .select('total')
+        .gte('created_at', previousStartDate)
+        .lt('created_at', startDate);
 
-  return { kpis, isLoading };
+      const { data: previousTransactions } = await supabase
+        .from('transactions')
+        .select('amount, type')
+        .gte('created_at', previousStartDate)
+        .lt('created_at', startDate);
+
+      const previousRevenue = previousSales?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
+      const previousExpenses = previousTransactions
+        ?.filter(t => t.type === 'expense' || t.type === 'purchase')
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount || 0)), 0) || 0;
+
+      const revenueTrend = calculateTrend(totalRevenue, previousRevenue);
+      const expensesTrend = calculateTrend(totalExpenses, previousExpenses);
+      const netProfit = totalRevenue - totalExpenses;
+      const previousProfit = previousRevenue - previousExpenses;
+      const profitTrend = calculateTrend(netProfit, previousProfit);
+
+      return {
+        totalRevenue,
+        totalExpenses,
+        netProfit,
+        inventoryValue,
+        lowStockCount,
+        totalTransactions: transactionsData?.length || 0,
+        avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        activeProducts: activeProducts.length,
+        revenueTrend,
+        expensesTrend,
+        profitTrend,
+        inventoryTrend: 0,
+        paidAmount,
+        outstandingAmount,
+        totalOrders,
+      } as DashboardKPIs;
+    },
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnWindowFocus: true,
+  });
+
+  return { kpis: kpis || null, isLoading, error, refetch };
 }
 
 function getStartDate(range: string): string {
