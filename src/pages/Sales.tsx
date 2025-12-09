@@ -3,18 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Pencil, FileText, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Eye, Pencil, FileText, Download, Users } from "lucide-react";
 import { SalesFilters } from "@/components/sales/SalesFilters";
 import { SalesDetailDialog } from "@/components/sales/SalesDetailDialog";
 import { SalesFormDialog } from "@/components/sales/SalesFormDialog";
 import { SalesBulkActionsBar } from "@/components/sales/SalesBulkActionsBar";
 import { SalesAnalytics } from "@/components/sales/SalesAnalytics";
+import { CustomerFormDialog } from "@/components/sales/CustomerFormDialog";
 import { SalesOrder, SalesFilters as SalesFiltersType } from "@/types/sale";
 import { useSales } from "@/hooks/useSales";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useProducts } from "@/hooks/useProducts";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
+import { Customer } from "@/types/customer";
 
 const statusColors = {
   draft: "bg-gray-500",
@@ -26,11 +30,13 @@ const statusColors = {
 
 export default function Sales() {
   const { sales, loading: salesLoading, createSalesOrder, updateSalesOrder, deleteSalesOrders, bulkUpdateStatus } = useSales();
-  const { customers, loading: customersLoading, createCustomer } = useCustomers();
+  const { customers, loading: customersLoading, createCustomer, refetch: refetchCustomers } = useCustomers();
   const { products, loading: productsLoading } = useProducts();
   const [selectedSale, setSelectedSale] = useState<SalesOrder | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<SalesFiltersType>({
     search: "",
@@ -174,30 +180,54 @@ export default function Sales() {
     );
   }
 
+  const handleCreateCustomer = () => {
+    setSelectedCustomer(null);
+    setShowCustomerDialog(true);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerDialog(true);
+  };
+
+  const handleSaveCustomer = async (customerData: Partial<Customer>) => {
+    await createCustomer(customerData);
+    await refetchCustomers();
+    setShowCustomerDialog(false);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Sales Orders</h1>
+          <h1 className="text-3xl font-bold">Sales</h1>
           <p className="text-muted-foreground mt-1">Manage sales orders, customers, and invoices</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportAll}>
-            <Download className="h-4 w-4 mr-2" />
-            Export All
-          </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Order
-          </Button>
         </div>
       </div>
 
-      <SalesAnalytics sales={filteredSales} />
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList>
+          <TabsTrigger value="orders">Sales Orders</TabsTrigger>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
+        </TabsList>
 
-      <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
+        <TabsContent value="orders" className="space-y-6">
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={handleExportAll}>
+              <Download className="h-4 w-4 mr-2" />
+              Export All
+            </Button>
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Order
+            </Button>
+          </div>
 
-      <Card>
+          <SalesAnalytics sales={filteredSales} />
+
+          <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
+
+          <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b bg-muted/50">
@@ -257,26 +287,92 @@ export default function Sales() {
               ))}
             </tbody>
           </table>
-        </div>
-      </Card>
+          </Card>
 
-      <SalesDetailDialog sale={selectedSale} open={showDetailDialog} onOpenChange={setShowDetailDialog} />
-      <SalesFormDialog
-        sale={selectedSale}
-        open={showFormDialog}
-        onOpenChange={setShowFormDialog}
-        onSave={handleSave}
-        customers={customers}
-        products={products}
-        onCreateCustomer={createCustomer}
-      />
-      <SalesBulkActionsBar
-        selectedCount={selectedIds.size}
-        onConfirm={handleBulkConfirm}
-        onCancel={handleBulkCancel}
-        onDelete={handleBulkDelete}
-        onExport={handleBulkExport}
-        onClearSelection={() => setSelectedIds(new Set())}
+          <SalesDetailDialog sale={selectedSale} open={showDetailDialog} onOpenChange={setShowDetailDialog} />
+          <SalesFormDialog
+            sale={selectedSale}
+            open={showFormDialog}
+            onOpenChange={setShowFormDialog}
+            onSave={handleSave}
+            customers={customers}
+            products={products}
+            onCreateCustomer={createCustomer}
+          />
+          <SalesBulkActionsBar
+            selectedCount={selectedIds.size}
+            onConfirm={handleBulkConfirm}
+            onCancel={handleBulkCancel}
+            onDelete={handleBulkDelete}
+            onExport={handleBulkExport}
+            onClearSelection={() => setSelectedIds(new Set())}
+          />
+        </TabsContent>
+
+        <TabsContent value="customers" className="space-y-6">
+          <div className="flex items-center justify-end">
+            <Button onClick={handleCreateCustomer}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Customer
+            </Button>
+          </div>
+
+          <Card>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Country</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No customers found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    customers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.email || "-"}</TableCell>
+                        <TableCell>{customer.phone || "-"}</TableCell>
+                        <TableCell>{customer.city || "-"}</TableCell>
+                        <TableCell>{customer.country || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant={customer.status === "active" ? "default" : "secondary"}>
+                            {customer.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">MRU {customer.balance.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleEditCustomer(customer)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <CustomerFormDialog
+        customer={selectedCustomer}
+        open={showCustomerDialog}
+        onOpenChange={setShowCustomerDialog}
+        onSave={handleSaveCustomer}
       />
     </div>
   );

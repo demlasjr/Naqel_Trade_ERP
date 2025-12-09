@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,16 +28,90 @@ export function EmployeeFormDialog({
   departments,
   onCreateDepartment,
 }: EmployeeFormDialogProps) {
+  const [formData, setFormData] = useState<Partial<Employee>>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "prefer_not_to_say",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "Mauritania",
+    departmentId: "",
+    position: "",
+    employmentType: "full_time",
+    employmentStatus: "active",
+    hireDate: "",
+    baseSalary: 0,
+    currency: "MRU",
+    paymentFrequency: "monthly",
+    notes: "",
+  });
   const [showNewDept, setShowNewDept] = useState(false);
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptCode, setNewDeptCode] = useState("");
-  const [selectedDeptId, setSelectedDeptId] = useState(employee?.departmentId || "");
+
+  useEffect(() => {
+    if (employee) {
+      setFormData({
+        firstName: employee.firstName || "",
+        lastName: employee.lastName || "",
+        email: employee.email || "",
+        phone: employee.phone || "",
+        dateOfBirth: employee.dateOfBirth || "",
+        gender: employee.gender || "prefer_not_to_say",
+        address: employee.address || "",
+        city: employee.city || "",
+        state: employee.state || "",
+        zipCode: employee.zipCode || "",
+        country: employee.country || "Mauritania",
+        departmentId: employee.departmentId || "",
+        position: employee.position || "",
+        employmentType: employee.employmentType || "full_time",
+        employmentStatus: employee.employmentStatus || "active",
+        hireDate: employee.hireDate || "",
+        baseSalary: employee.baseSalary || 0,
+        currency: employee.currency || "MRU",
+        paymentFrequency: employee.paymentFrequency || "monthly",
+        notes: employee.notes || "",
+      });
+    } else {
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        dateOfBirth: "",
+        gender: "prefer_not_to_say",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "Mauritania",
+        departmentId: "",
+        position: "",
+        employmentType: "full_time",
+        employmentStatus: "active",
+        hireDate: "",
+        baseSalary: 0,
+        currency: "MRU",
+        paymentFrequency: "monthly",
+        notes: "",
+      });
+    }
+    setShowNewDept(false);
+    setNewDeptName("");
+    setNewDeptCode("");
+  }, [employee, open]);
 
   const handleDepartmentChange = (value: string) => {
     if (value === "__create_new__") {
       setShowNewDept(true);
     } else {
-      setSelectedDeptId(value);
+      setFormData({ ...formData, departmentId: value });
     }
   };
 
@@ -53,7 +127,7 @@ export function EmployeeFormDialog({
           name: newDeptName.trim(),
           code: newDeptCode.trim().toUpperCase(),
         });
-        setSelectedDeptId(newDept.id);
+        setFormData({ ...formData, departmentId: newDept.id });
         setShowNewDept(false);
         setNewDeptName("");
         setNewDeptCode("");
@@ -65,30 +139,7 @@ export function EmployeeFormDialog({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data: Partial<Employee> = {
-      firstName: formData.get("firstName") as string,
-      lastName: formData.get("lastName") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      dateOfBirth: formData.get("dateOfBirth") as string,
-      gender: formData.get("gender") as any,
-      address: formData.get("address") as string,
-      city: formData.get("city") as string,
-      state: formData.get("state") as string,
-      zipCode: formData.get("zipCode") as string,
-      country: formData.get("country") as string,
-      departmentId: selectedDeptId,
-      position: formData.get("position") as string,
-      employmentType: formData.get("employmentType") as any,
-      employmentStatus: formData.get("employmentStatus") as any,
-      hireDate: formData.get("hireDate") as string,
-      baseSalary: Number(formData.get("baseSalary")),
-      currency: formData.get("currency") as string,
-      paymentFrequency: formData.get("paymentFrequency") as any,
-      notes: formData.get("notes") as string,
-    };
-    onSave(data);
+    onSave(formData);
     onOpenChange(false);
   };
 
@@ -110,33 +161,68 @@ export function EmployeeFormDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name *</Label>
-                  <Input id="firstName" name="firstName" defaultValue={employee?.firstName} required />
+                  <Input 
+                    id="firstName" 
+                    name="firstName" 
+                    value={formData.firstName || ""} 
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="lastName">Last Name *</Label>
-                  <Input id="lastName" name="lastName" defaultValue={employee?.lastName} required />
+                  <Input 
+                    id="lastName" 
+                    name="lastName" 
+                    value={formData.lastName || ""} 
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} 
+                    required 
+                  />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">Email *</Label>
-                  <Input id="email" name="email" type="email" defaultValue={employee?.email} required />
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    value={formData.email || ""} 
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone *</Label>
-                  <Input id="phone" name="phone" defaultValue={employee?.phone} required />
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    value={formData.phone || ""} 
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                    required 
+                  />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-                  <Input id="dateOfBirth" name="dateOfBirth" type="date" defaultValue={employee?.dateOfBirth} required />
+                  <Input 
+                    id="dateOfBirth" 
+                    name="dateOfBirth" 
+                    type="date" 
+                    value={formData.dateOfBirth || ""} 
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="gender">Gender *</Label>
-                  <Select name="gender" defaultValue={employee?.gender || "prefer_not_to_say"}>
+                  <Select 
+                    value={formData.gender || "prefer_not_to_say"}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value as any })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -152,27 +238,57 @@ export function EmployeeFormDialog({
               
               <div>
                 <Label htmlFor="address">Address *</Label>
-                <Input id="address" name="address" defaultValue={employee?.address} required />
+                <Input 
+                  id="address" 
+                  name="address" 
+                  value={formData.address || ""} 
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
+                  required 
+                />
               </div>
               
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="city">City *</Label>
-                  <Input id="city" name="city" defaultValue={employee?.city} required />
+                  <Input 
+                    id="city" 
+                    name="city" 
+                    value={formData.city || ""} 
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="state">State *</Label>
-                  <Input id="state" name="state" defaultValue={employee?.state} required />
+                  <Input 
+                    id="state" 
+                    name="state" 
+                    value={formData.state || ""} 
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="zipCode">Zip Code *</Label>
-                  <Input id="zipCode" name="zipCode" defaultValue={employee?.zipCode} required />
+                  <Input 
+                    id="zipCode" 
+                    name="zipCode" 
+                    value={formData.zipCode || ""} 
+                    onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })} 
+                    required 
+                  />
                 </div>
               </div>
               
               <div>
                 <Label htmlFor="country">Country *</Label>
-                <Input id="country" name="country" defaultValue={employee?.country || "Mauritania"} required />
+                <Input 
+                  id="country" 
+                  name="country" 
+                  value={formData.country || "Mauritania"} 
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })} 
+                  required 
+                />
               </div>
             </TabsContent>
             
@@ -182,8 +298,7 @@ export function EmployeeFormDialog({
                   <Label htmlFor="departmentId">Department *</Label>
                   {!showNewDept ? (
                     <Select 
-                      name="departmentId" 
-                      value={selectedDeptId}
+                      value={formData.departmentId || ""}
                       onValueChange={handleDepartmentChange}
                     >
                       <SelectTrigger>
@@ -231,14 +346,23 @@ export function EmployeeFormDialog({
                 </div>
                 <div>
                   <Label htmlFor="position">Position *</Label>
-                  <Input id="position" name="position" defaultValue={employee?.position} required />
+                  <Input 
+                    id="position" 
+                    name="position" 
+                    value={formData.position || ""} 
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })} 
+                    required 
+                  />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="employmentType">Employment Type *</Label>
-                  <Select name="employmentType" defaultValue={employee?.employmentType || "full_time"}>
+                  <Select 
+                    value={formData.employmentType || "full_time"}
+                    onValueChange={(value) => setFormData({ ...formData, employmentType: value as any })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -252,7 +376,10 @@ export function EmployeeFormDialog({
                 </div>
                 <div>
                   <Label htmlFor="employmentStatus">Status *</Label>
-                  <Select name="employmentStatus" defaultValue={employee?.employmentStatus || "active"}>
+                  <Select 
+                    value={formData.employmentStatus || "active"}
+                    onValueChange={(value) => setFormData({ ...formData, employmentStatus: value as any })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -268,12 +395,25 @@ export function EmployeeFormDialog({
               
               <div>
                 <Label htmlFor="hireDate">Hire Date *</Label>
-                <Input id="hireDate" name="hireDate" type="date" defaultValue={employee?.hireDate} required />
+                <Input 
+                  id="hireDate" 
+                  name="hireDate" 
+                  type="date" 
+                  value={formData.hireDate || ""} 
+                  onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })} 
+                  required 
+                />
               </div>
               
               <div>
                 <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" name="notes" defaultValue={employee?.notes} rows={3} />
+                <Textarea 
+                  id="notes" 
+                  name="notes" 
+                  value={formData.notes || ""} 
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+                  rows={3} 
+                />
               </div>
             </TabsContent>
             
@@ -281,11 +421,22 @@ export function EmployeeFormDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="baseSalary">Base Salary *</Label>
-                  <Input id="baseSalary" name="baseSalary" type="number" step="0.01" defaultValue={employee?.baseSalary} required />
+                  <Input 
+                    id="baseSalary" 
+                    name="baseSalary" 
+                    type="number" 
+                    step="0.01" 
+                    value={formData.baseSalary || 0} 
+                    onChange={(e) => setFormData({ ...formData, baseSalary: Number(e.target.value) })} 
+                    required 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="currency">Currency *</Label>
-                  <Select name="currency" defaultValue={employee?.currency || "MRU"}>
+                  <Select 
+                    value={formData.currency || "MRU"}
+                    onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -299,7 +450,10 @@ export function EmployeeFormDialog({
               
               <div>
                 <Label htmlFor="paymentFrequency">Payment Frequency *</Label>
-                <Select name="paymentFrequency" defaultValue={employee?.paymentFrequency || "monthly"}>
+                <Select 
+                  value={formData.paymentFrequency || "monthly"}
+                  onValueChange={(value) => setFormData({ ...formData, paymentFrequency: value as any })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

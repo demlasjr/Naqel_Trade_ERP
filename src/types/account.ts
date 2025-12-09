@@ -11,6 +11,7 @@ export interface Account {
   status: AccountStatus;
   balance: number;
   description?: string;
+  isImported?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

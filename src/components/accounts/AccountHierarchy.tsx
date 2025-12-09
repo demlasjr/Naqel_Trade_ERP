@@ -132,10 +132,11 @@ export function AccountHierarchy({
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => onDelete(account)} 
-                    className="cursor-pointer text-destructive focus:text-destructive"
+                    disabled={account.isImported}
+                    className={account.isImported ? "opacity-50 cursor-not-allowed" : "cursor-pointer text-destructive focus:text-destructive"}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                    Delete {account.isImported ? "(Imported)" : ""}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

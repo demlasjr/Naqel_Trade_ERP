@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, Pencil } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Eye, Pencil, Users } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { PurchaseFilters } from "@/components/purchases/PurchaseFilters";
@@ -8,7 +10,9 @@ import { PurchaseDetailDialog } from "@/components/purchases/PurchaseDetailDialo
 import { PurchaseFormDialog } from "@/components/purchases/PurchaseFormDialog";
 import { PurchaseBulkActionsBar } from "@/components/purchases/PurchaseBulkActionsBar";
 import { PurchaseAnalytics } from "@/components/purchases/PurchaseAnalytics";
+import { VendorFormDialog } from "@/components/purchases/VendorFormDialog";
 import { PurchaseOrder, PurchaseFilters as PurchaseFiltersType } from "@/types/purchase";
+import { Vendor } from "@/types/vendor";
 import { format } from "date-fns";
 import { usePurchases } from "@/hooks/usePurchases";
 import { useVendors } from "@/hooks/useVendors";
@@ -25,12 +29,14 @@ const statusStyles = {
 
 export default function Purchases() {
   const { purchases, isLoading, createPurchase, updatePurchase, deletePurchases, bulkUpdateStatus } = usePurchases();
-  const { vendors, isLoading: isLoadingVendors, createVendor } = useVendors();
+  const { vendors, isLoading: isLoadingVendors, createVendor, refetch: refetchVendors } = useVendors();
   const { products, loading: isLoadingProducts } = useProducts();
   
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseOrder | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showVendorDialog, setShowVendorDialog] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<PurchaseFiltersType>({
     search: "",
@@ -169,6 +175,22 @@ export default function Purchases() {
     a.click();
   };
 
+  const handleCreateVendor = () => {
+    setSelectedVendor(null);
+    setShowVendorDialog(true);
+  };
+
+  const handleEditVendor = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setShowVendorDialog(true);
+  };
+
+  const handleSaveVendor = async (vendorData: Partial<Vendor>) => {
+    await createVendor(vendorData);
+    await refetchVendors();
+    setShowVendorDialog(false);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -176,17 +198,27 @@ export default function Purchases() {
           <h1 className="text-3xl font-bold">Purchases</h1>
           <p className="text-muted-foreground mt-1">Manage purchase orders and vendor relationships</p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Purchase Order
-        </Button>
       </div>
 
-      <PurchaseAnalytics purchases={purchases} />
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList>
+          <TabsTrigger value="orders">Purchase Orders</TabsTrigger>
+          <TabsTrigger value="vendors">Vendors</TabsTrigger>
+        </TabsList>
 
-      <PurchaseFilters filters={filters} onFiltersChange={setFilters} vendors={vendors} />
+        <TabsContent value="orders" className="space-y-6">
+          <div className="flex items-center justify-end">
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Purchase Order
+            </Button>
+          </div>
 
-      <div className="bg-card rounded-lg border">
+          <PurchaseAnalytics purchases={purchases} />
+
+          <PurchaseFilters filters={filters} onFiltersChange={setFilters} vendors={vendors} />
+
+          <div className="bg-card rounded-lg border">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted border-b">
@@ -247,30 +279,95 @@ export default function Purchases() {
           <div className="text-center py-12">
             <p className="text-muted-foreground">No purchase orders found</p>
           </div>
-        )}
-      </div>
+          )}
+          </div>
 
-      <PurchaseDetailDialog purchase={selectedPurchase} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
+          <PurchaseDetailDialog purchase={selectedPurchase} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
 
-      <PurchaseFormDialog
-        purchase={selectedPurchase}
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSave={handleSave}
-        vendors={vendors}
-        products={products}
-        onCreateVendor={createVendor}
-      />
+          <PurchaseFormDialog
+            purchase={selectedPurchase}
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            onSave={handleSave}
+            vendors={vendors}
+            products={products}
+            onCreateVendor={createVendor}
+          />
 
-      <PurchaseBulkActionsBar
-        selectedCount={selectedIds.size}
-        onMarkOrdered={handleBulkMarkOrdered}
-        onMarkReceived={handleBulkMarkReceived}
-        onMarkPaid={handleBulkMarkPaid}
-        onCancel={handleBulkCancel}
-        onDelete={handleBulkDelete}
-        onExport={handleBulkExport}
-        onClearSelection={() => setSelectedIds(new Set())}
+          <PurchaseBulkActionsBar
+            selectedCount={selectedIds.size}
+            onMarkOrdered={handleBulkMarkOrdered}
+            onMarkReceived={handleBulkMarkReceived}
+            onMarkPaid={handleBulkMarkPaid}
+            onCancel={handleBulkCancel}
+            onDelete={handleBulkDelete}
+            onExport={handleBulkExport}
+            onClearSelection={() => setSelectedIds(new Set())}
+          />
+        </TabsContent>
+
+        <TabsContent value="vendors" className="space-y-6">
+          <div className="flex items-center justify-end">
+            <Button onClick={handleCreateVendor}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Vendor
+            </Button>
+          </div>
+
+          <div className="bg-card rounded-lg border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Country</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendors.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No vendors found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    vendors.map((vendor) => (
+                      <TableRow key={vendor.id}>
+                        <TableCell className="font-medium">{vendor.name}</TableCell>
+                        <TableCell>{vendor.email || "-"}</TableCell>
+                        <TableCell>{vendor.phone || "-"}</TableCell>
+                        <TableCell>{vendor.city || "-"}</TableCell>
+                        <TableCell>{vendor.country || "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant={vendor.status === "active" ? "default" : "secondary"}>
+                            {vendor.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleEditVendor(vendor)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <VendorFormDialog
+        vendor={selectedVendor}
+        open={showVendorDialog}
+        onOpenChange={setShowVendorDialog}
+        onSave={handleSaveVendor}
       />
     </div>
   );

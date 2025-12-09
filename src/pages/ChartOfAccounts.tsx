@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Download, BarChart3 } from "lucide-react";
+import { Plus, Download, BarChart3, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Account, AccountType, AccountStatus, AccountWithChildren } from "@/types/account";
@@ -10,6 +10,7 @@ import { AccountDetailDialog } from "@/components/accounts/AccountDetailDialog";
 import { AccountFilters } from "@/components/accounts/AccountFilters";
 import { BulkActionsBar } from "@/components/accounts/BulkActionsBar";
 import { AccountAnalytics } from "@/components/accounts/AccountAnalytics";
+import { ImportAccountsDialog } from "@/components/accounts/ImportAccountsDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import {
@@ -31,7 +32,8 @@ export default function ChartOfAccounts() {
     updateAccount, 
     deleteAccount: deleteAccountMutation,
     bulkDeleteAccounts,
-    bulkUpdateStatus 
+    bulkUpdateStatus,
+    importAccounts
   } = useAccounts();
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,6 +42,7 @@ export default function ChartOfAccounts() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [formOpen, setFormOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [viewingAccount, setViewingAccount] = useState<Account | null>(null);
   const [deleteAccountState, setDeleteAccountState] = useState<Account | null>(null);
@@ -169,6 +172,10 @@ export default function ChartOfAccounts() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import Accounts
+          </Button>
           <Button onClick={() => { setEditingAccount(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             New Account
@@ -254,7 +261,13 @@ export default function ChartOfAccounts() {
               setEditingAccount(account);
               setFormOpen(true);
             }}
-            onDelete={(account) => setDeleteAccountState(account)}
+            onDelete={(account) => {
+              if (account.isImported) {
+                alert("No se puede eliminar una cuenta importada. Las cuentas importadas son permanentes.");
+                return;
+              }
+              setDeleteAccountState(account);
+            }}
           />
         </TabsContent>
 
@@ -295,6 +308,13 @@ export default function ChartOfAccounts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportAccountsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImport={importAccounts}
+        existingAccounts={accounts}
+      />
 
       <BulkActionsBar
         selectedCount={selectedIds.size}

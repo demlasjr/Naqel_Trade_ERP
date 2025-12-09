@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PurchaseOrder, PurchaseStatus } from "@/types/purchase";
 import { toast } from "@/lib/toast";
+import { useActivityLogs } from "./useActivityLog";
 
 export function usePurchases() {
   const queryClient = useQueryClient();
+  const { createActivityLog } = useActivityLogs();
 
   const purchasesQuery = useQuery({
     queryKey: ["purchases"],
@@ -85,6 +87,7 @@ export function usePurchases() {
 
       if (poError) throw poError;
 
+      // Insert line items and update inventory
       if (purchaseData.lineItems && purchaseData.lineItems.length > 0) {
         const { error: lineItemsError } = await supabase
           .from("purchase_line_items")
@@ -99,7 +102,131 @@ export function usePurchases() {
           );
 
         if (lineItemsError) throw lineItemsError;
+
+        // Update inventory - increase stock for each product
+        for (const item of purchaseData.lineItems) {
+          // Get current stock
+          const { data: product, error: productError } = await supabase
+            .from("products")
+            .select("current_stock")
+            .eq("id", item.productId)
+            .single();
+
+          if (productError) {
+            console.error(`Error fetching product ${item.productId}:`, productError);
+            continue;
+          }
+
+          const newStock = (product.current_stock || 0) + item.quantity;
+
+          // Update product stock
+          const { error: updateError } = await supabase
+            .from("products")
+            .update({ current_stock: newStock })
+            .eq("id", item.productId);
+
+          if (updateError) {
+            console.error(`Error updating stock for product ${item.productId}:`, updateError);
+          }
+
+          // Record stock movement
+          await supabase.from("stock_movements").insert({
+            product_id: item.productId,
+            movement_type: "in",
+            quantity: item.quantity,
+            reference_type: "purchase",
+            reference_id: purchaseOrder.id,
+            notes: `Purchase order ${purchaseData.orderNumber}`,
+            created_by: user.id,
+          });
+        }
       }
+
+      // Create transaction
+      if (purchaseData.total && purchaseData.total > 0) {
+        // Find cash account (vault)
+        let cashAccountId: string | null = null;
+        const { data: cashAccounts } = await supabase
+          .from("accounts")
+          .select("id")
+          .eq("account_type", "asset")
+          .ilike("name", "%cash%")
+          .limit(1);
+
+        if (cashAccounts && cashAccounts.length > 0) {
+          cashAccountId = cashAccounts[0].id;
+        } else {
+          // Try to find by code
+          const { data: accountByCode } = await supabase
+            .from("accounts")
+            .select("id")
+            .eq("code", "1110")
+            .single();
+
+          if (accountByCode) {
+            cashAccountId = accountByCode.id;
+          }
+        }
+
+        if (cashAccountId) {
+          // Create transaction
+          const { error: transactionError } = await supabase
+            .from("transactions")
+            .insert({
+              date: purchaseData.date || new Date().toISOString().split("T")[0],
+              type: "purchase",
+              description: `Purchase order ${purchaseData.orderNumber}`,
+              account_from: cashAccountId,
+              amount: purchaseData.total,
+              status: "completed",
+              reference: purchaseData.orderNumber,
+              notes: `Purchase from ${purchaseData.vendorName || "vendor"}`,
+              created_by: user.id,
+            });
+
+          if (transactionError) {
+            console.error("Error creating transaction:", transactionError);
+          } else {
+            // Update cash account balance (decrease)
+            const { data: account } = await supabase
+              .from("accounts")
+              .select("balance")
+              .eq("id", cashAccountId)
+              .single();
+
+            if (account) {
+              await supabase
+                .from("accounts")
+                .update({ balance: Math.max(0, (account.balance || 0) - purchaseData.total) })
+                .eq("id", cashAccountId);
+            }
+          }
+        }
+      }
+
+      // Create activity log
+      try {
+        await createActivityLog({
+          module: "purchases",
+          actionType: "create",
+          description: `Created purchase order ${purchaseData.orderNumber} for ${purchaseData.total?.toFixed(2)} MRU`,
+          entityType: "purchase_order",
+          entityId: purchaseOrder.id,
+          metadata: {
+            orderNumber: purchaseData.orderNumber,
+            total: purchaseData.total,
+            vendorName: purchaseData.vendorName,
+          },
+        });
+      } catch (logError) {
+        console.error("Error creating activity log:", logError);
+      }
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
 
       return purchaseOrder;
     },

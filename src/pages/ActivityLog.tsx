@@ -3,10 +3,12 @@ import { Activity, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActivityLogFilters, FilterState } from "@/components/activityLog/ActivityLogFilters";
 import { ActivityLogTable } from "@/components/activityLog/ActivityLogTable";
-import { mockActivityLogs } from "@/data/mockActivityLogs";
+import { useActivityLogs } from "@/hooks/useActivityLog";
+import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
 
 export default function ActivityLog() {
+  const { activityLogs, isLoading } = useActivityLogs();
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     module: "all",
@@ -16,7 +18,7 @@ export default function ActivityLog() {
   });
 
   const filteredLogs = useMemo(() => {
-    let filtered = [...mockActivityLogs];
+    let filtered = [...activityLogs];
 
     // Search filter
     if (filters.search) {
@@ -54,12 +56,20 @@ export default function ActivityLog() {
 
     // Sort by timestamp (newest first)
     return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }, [filters]);
+  }, [filters, activityLogs]);
 
   const handleExport = () => {
     // Placeholder for export functionality
     console.log("Exporting activity logs...", filteredLogs);
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

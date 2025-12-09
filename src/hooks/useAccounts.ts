@@ -25,6 +25,7 @@ export function useAccounts() {
         balance: acc.balance,
         description: acc.description,
         status: acc.status as AccountStatus,
+        isImported: acc.is_imported || false,
         createdAt: new Date(acc.created_at),
         updatedAt: new Date(acc.updated_at),
       })) as Account[];
@@ -87,6 +88,19 @@ export function useAccounts() {
 
   const deleteAccount = useMutation({
     mutationFn: async (id: string) => {
+      // Check if account is imported
+      const { data: account, error: fetchError } = await supabase
+        .from("accounts")
+        .select("is_imported")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (account?.is_imported) {
+        throw new Error("No se puede eliminar una cuenta importada. Las cuentas importadas son permanentes.");
+      }
+
       const { error } = await supabase.from("accounts").delete().eq("id", id);
       if (error) throw error;
     },
@@ -101,6 +115,20 @@ export function useAccounts() {
 
   const bulkDeleteAccounts = useMutation({
     mutationFn: async (ids: string[]) => {
+      // Check if any account is imported
+      const { data: accounts, error: fetchError } = await supabase
+        .from("accounts")
+        .select("id, code, is_imported")
+        .in("id", ids);
+
+      if (fetchError) throw fetchError;
+
+      const importedAccounts = accounts?.filter(acc => acc.is_imported) || [];
+      if (importedAccounts.length > 0) {
+        const importedCodes = importedAccounts.map(acc => acc.code).join(', ');
+        throw new Error(`No se pueden eliminar cuentas importadas: ${importedCodes}. Las cuentas importadas son permanentes.`);
+      }
+
       const { error } = await supabase.from("accounts").delete().in("id", ids);
       if (error) throw error;
     },
@@ -110,6 +138,55 @@ export function useAccounts() {
     },
     onError: (error: Error) => {
       toast.error("Failed to delete accounts", error.message);
+    },
+  });
+
+  const importAccounts = useMutation({
+    mutationFn: async (accountsData: Partial<Account>[]) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // First, resolve parent IDs for accounts with parent codes
+      const accountsToInsert = await Promise.all(
+        accountsData.map(async (acc) => {
+          let parentId = acc.parentId || null;
+          
+          // If parentId is a code, find the actual ID
+          if (parentId && !parentId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            const { data: parent } = await supabase
+              .from("accounts")
+              .select("id")
+              .eq("code", parentId)
+              .single();
+            parentId = parent?.id || null;
+          }
+
+          return {
+            code: acc.code,
+            name: acc.name,
+            type: acc.type,
+            parent_id: parentId,
+            balance: acc.balance || 0,
+            description: acc.description || null,
+            status: acc.status || "active",
+            is_imported: true, // Mark as imported
+            created_by: user.id,
+          };
+        })
+      );
+
+      const { error } = await supabase
+        .from("accounts")
+        .insert(accountsToInsert);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      toast.success("Accounts imported successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to import accounts", error.message);
     },
   });
 
@@ -140,5 +217,6 @@ export function useAccounts() {
     deleteAccount: deleteAccount.mutateAsync,
     bulkDeleteAccounts: bulkDeleteAccounts.mutateAsync,
     bulkUpdateStatus: bulkUpdateStatus.mutateAsync,
+    importAccounts: importAccounts.mutateAsync,
   };
 }

@@ -63,7 +63,7 @@ export function PurchaseFormDialog({ purchase, open, onOpenChange, onSave, vendo
 
   const calculateTotals = (lineItems: PurchaseLineItem[], taxRate: number) => {
     const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);
-    const tax = (subtotal * taxRate) / 100;
+    const tax = taxRate && taxRate > 0 ? (subtotal * taxRate) / 100 : 0;
     const total = subtotal + tax;
     return { subtotal, tax, total };
   };
@@ -152,11 +152,13 @@ export function PurchaseFormDialog({ purchase, open, onOpenChange, onSave, vendo
   };
 
   const handleSubmit = async () => {
-    const { subtotal, tax, total } = calculateTotals(formData.lineItems || [], formData.taxRate || 10);
+    const taxRate = formData.taxRate ?? 0;
+    const { subtotal, tax, total } = calculateTotals(formData.lineItems || [], taxRate);
     const amountPaid = formData.amountPaid || 0;
     
     await onSave({
       ...formData,
+      taxRate,
       subtotal,
       tax,
       total,
@@ -167,7 +169,8 @@ export function PurchaseFormDialog({ purchase, open, onOpenChange, onSave, vendo
     onOpenChange(false);
   };
 
-  const { subtotal, tax, total } = calculateTotals(formData.lineItems || [], formData.taxRate || 10);
+  const taxRate = formData.taxRate ?? 0;
+  const { subtotal, tax, total } = calculateTotals(formData.lineItems || [], taxRate);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -354,10 +357,11 @@ export function PurchaseFormDialog({ purchase, open, onOpenChange, onSave, vendo
                 <span className="text-muted-foreground">Tax Rate (%)</span>
                 <Input
                   type="number"
-                  value={formData.taxRate}
-                  onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) })}
+                  value={formData.taxRate ?? 0}
+                  onChange={(e) => setFormData({ ...formData, taxRate: Number(e.target.value) || 0 })}
                   className="w-20 text-right"
                   step="0.1"
+                  min="0"
                 />
               </div>
               <div className="flex justify-between">
