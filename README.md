@@ -44,13 +44,29 @@ A comprehensive Enterprise Resource Planning (ERP) system built with React, Type
    bun install
    ```
 
-3. **Set up environment variables**
+3. **Configure Supabase credentials**
+   
+   You have two options to configure your Supabase connection:
+
+   **Option A: Environment Variables (Recommended for production)**
    
    Create a `.env.local` file in the root directory:
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
+
+   **Option B: Direct Code Update (Quick setup)**
+   
+   Edit the file `src/integrations/supabase/client.ts`:
+   ```typescript
+   const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
+   const supabaseAnonKey = 'YOUR_ANON_KEY';
+   ```
+   
+   You can find these values in your Supabase dashboard:
+   - Go to **Settings** → **API**
+   - Copy the **Project URL** and **anon public** key
 
 4. **Set up the database**
    
@@ -66,6 +82,7 @@ A comprehensive Enterprise Resource Planning (ERP) system built with React, Type
    - All triggers for auto-updates
    - All Row Level Security (RLS) policies
    - Realtime subscriptions
+   - **Default admin user**
 
 5. **Start the development server**
    ```bash
@@ -78,6 +95,15 @@ A comprehensive Enterprise Resource Planning (ERP) system built with React, Type
    
    Open your browser and navigate to `http://localhost:5173`
 
+7. **Login with default admin credentials**
+   
+   ```
+   Email: admin@admin.com
+   Password: Admin1234
+   ```
+   
+   ⚠️ **Important**: Change the admin password after your first login!
+
 ## Database Setup
 
 The `database.sql` file contains everything needed for a fresh database installation:
@@ -88,6 +114,19 @@ The `database.sql` file contains everything needed for a fresh database installa
 - **Triggers**: Auto-update triggers for `updated_at` columns
 - **RLS Policies**: Complete Row Level Security policies for all tables
 - **Realtime**: Realtime subscriptions enabled for key tables
+- **Default Admin User**: Automatically created for initial access
+
+### Default Admin Credentials
+
+When you run `database.sql`, a default admin user is automatically created:
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@admin.com` |
+| Password | `Admin1234` |
+| Role | `admin` |
+
+⚠️ **Security Warning**: Change this password immediately after your first login!
 
 ### Important Notes
 
@@ -95,6 +134,7 @@ The `database.sql` file contains everything needed for a fresh database installa
 - It uses `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` to avoid errors
 - All existing policies are dropped before creating new ones to prevent duplicates
 - The file fixes the `purchase_line_items` table to use `purchase_order_id` (not `purchase_id`)
+- The admin user is only created if it doesn't already exist
 
 ## Project Structure
 
@@ -117,7 +157,13 @@ Naqel_Trade_ERP/
 ### Authentication
 - Email/password authentication via Supabase Auth
 - Automatic profile creation on signup
-- Role-based access control
+- Role-based access control (admin, manager, accountant, sales, inventory, hr, viewer)
+- Default admin account for initial setup
+
+### Backup & Restore
+- Export all data to JSON file
+- Restore data from backup file
+- Accessible from the Backup & Restore menu
 
 ### Sales Module
 - Create and manage sales orders
@@ -166,6 +212,48 @@ Naqel_Trade_ERP/
 1. Connect your GitHub repository to Vercel
 2. Vercel will automatically detect the Vite configuration
 3. Add environment variables in Vercel dashboard
+
+## Supabase Configuration
+
+### Where to Update Database Credentials
+
+The Supabase URL and API key are configured in:
+
+```
+src/integrations/supabase/client.ts
+```
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_ANON_KEY';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
+```
+
+### How to Get Your Credentials
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Go to **Settings** → **API**
+4. Copy:
+   - **Project URL**: `https://xxxx.supabase.co`
+   - **anon public** key: `eyJhbGciOiJIUzI1NiIs...`
+
+### Updating for a New Project
+
+When switching to a new Supabase project:
+
+1. Update `src/integrations/supabase/client.ts` with new URL and key
+2. Run `database.sql` in the new project's SQL Editor
+3. Login with default admin: `admin@admin.com` / `Admin1234`
 
 ## Troubleshooting
 

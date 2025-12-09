@@ -32,7 +32,10 @@ export default function BackupRestore() {
   ];
 
   const createBackup = async () => {
-    if (!user) {
+    // Check authentication directly with Supabase
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!authUser) {
       toast.error("You must be authenticated to create a backup");
       return;
     }
@@ -46,8 +49,8 @@ export default function BackupRestore() {
       const backupInfo = {
         version: '1.0',
         created_at: new Date().toISOString(),
-        created_by: user.id,
-        created_by_email: user.email,
+        created_by: authUser.id,
+        created_by_email: authUser.email,
       };
 
       // Fetch data from all tables
@@ -112,7 +115,10 @@ export default function BackupRestore() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!user) {
+    // Check authentication directly with Supabase
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!authUser) {
       toast.error("You must be authenticated to restore a backup");
       return;
     }
