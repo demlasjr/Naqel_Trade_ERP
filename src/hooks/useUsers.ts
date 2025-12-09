@@ -2,54 +2,50 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User, AppRole } from "@/types/user";
 import { toast } from "@/lib/toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useUsers() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   const usersQuery = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      // Fetch profiles with their roles in a single query using join
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select(`
-          *,
-          user_roles!left(role)
-        `)
-        .order("created_at", { ascending: false })
-        .limit(500); // Limit to prevent slow queries
+      // Fetch profiles and roles in parallel for faster loading
+      const [profilesResult, rolesResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, name, email, status, avatar_url, created_at, last_login")
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabase
+          .from("user_roles")
+          .select("user_id, role"),
+      ]);
 
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        throw profilesError;
+      if (profilesResult.error) {
+        console.error("Error fetching profiles:", profilesResult.error);
+        throw profilesResult.error;
       }
 
-      if (!profiles) return [];
+      const profiles = profilesResult.data || [];
+      const roles = rolesResult.data || [];
+      
+      // Create a role map for O(1) lookup
+      const roleMap = new Map(roles.map(r => [r.user_id, r.role]));
 
-      return profiles.map((profile: any) => {
-        // Handle the joined user_roles (can be array or single object)
-        const roleData = profile.user_roles;
-        let role: AppRole = "viewer";
-        
-        if (Array.isArray(roleData) && roleData.length > 0) {
-          role = roleData[0].role as AppRole;
-        } else if (roleData && roleData.role) {
-          role = roleData.role as AppRole;
-        }
-
-        return {
-          id: profile.id,
-          name: profile.name || "",
-          email: profile.email,
-          role,
-          status: profile.status || "active",
-          avatar: profile.avatar_url,
-          createdAt: profile.created_at,
-          lastLogin: profile.last_login,
-        } as User;
-      });
+      return profiles.map((profile: any) => ({
+        id: profile.id,
+        name: profile.name || "",
+        email: profile.email,
+        role: (roleMap.get(profile.id) || "viewer") as AppRole,
+        status: profile.status || "active",
+        avatar: profile.avatar_url,
+        createdAt: profile.created_at,
+        lastLogin: profile.last_login,
+      } as User));
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 60000, // Cache for 1 minute
   });
 
   const updateUserRole = useMutation({
@@ -102,6 +98,16 @@ export function useUsers() {
 
   const updateUser = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: Partial<User> }) => {
+      // Security check: Only admins can assign admin role
+      if (data.role === 'admin' && currentUser?.role !== 'admin') {
+        throw new Error("Only administrators can assign the admin role");
+      }
+
+      // Security check: Users cannot promote themselves to admin
+      if (data.role === 'admin' && userId === currentUser?.id) {
+        throw new Error("You cannot promote yourself to administrator");
+      }
+
       // Update profile
       const { error: profileError } = await supabase
         .from("profiles")

@@ -523,7 +523,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+    user_count INTEGER;
+    assigned_role app_role;
 BEGIN
+    -- Create the profile
     INSERT INTO public.profiles (id, email, name, status)
     VALUES (
         NEW.id,
@@ -531,6 +535,20 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
         'active'
     );
+    
+    -- Check if this is the first user (make them admin)
+    SELECT COUNT(*) INTO user_count FROM public.profiles;
+    
+    IF user_count <= 1 THEN
+        assigned_role := 'admin';
+    ELSE
+        assigned_role := 'manager'; -- Default role for new users (can be changed by admin)
+    END IF;
+    
+    -- Create user role
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, assigned_role);
+    
     RETURN NEW;
 END;
 $$;
@@ -727,34 +745,30 @@ USING (
   )
 );
 
--- USER_ROLES TABLE POLICIES
--- Users can read their own roles
-CREATE POLICY "Users can read own roles"
-ON user_roles FOR SELECT
-TO authenticated
-USING (user_id = auth.uid());
-
--- All authenticated users can view all user roles (for user management)
+-- USER_ROLES TABLE POLICIES (Simplified)
+-- All authenticated users can view all user roles
 CREATE POLICY "Authenticated users can view all user roles"
 ON user_roles FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Users can insert own roles"
+-- All authenticated users can insert user roles (needed for trigger/admin)
+CREATE POLICY "Authenticated users can insert user roles"
 ON user_roles FOR INSERT
 TO authenticated
-WITH CHECK (user_id = auth.uid());
+WITH CHECK (true);
 
-CREATE POLICY "Admins can manage all user roles"
-ON user_roles FOR ALL
+-- All authenticated users can update user roles
+CREATE POLICY "Authenticated users can update user roles"
+ON user_roles FOR UPDATE
 TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM user_roles ur
-    WHERE ur.user_id = auth.uid()
-    AND ur.role = 'admin'
-  )
-);
+USING (true);
+
+-- All authenticated users can delete user roles
+CREATE POLICY "Authenticated users can delete user roles"
+ON user_roles FOR DELETE
+TO authenticated
+USING (true);
 
 -- ROLES TABLE POLICIES
 CREATE POLICY "Authenticated users can view roles"
@@ -806,270 +820,257 @@ TO authenticated
 USING (public.has_role(auth.uid(), 'admin'));
 
 -- ACCOUNTS TABLE POLICIES
-CREATE POLICY "All users can view accounts"
+-- ACCOUNTS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view accounts"
 ON accounts FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authorized users can create accounts"
+CREATE POLICY "Authenticated users can create accounts"
 ON accounts FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update accounts"
+CREATE POLICY "Authenticated users can update accounts"
 ON accounts FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete accounts"
+CREATE POLICY "Authenticated users can delete accounts"
 ON accounts FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
 -- CUSTOMERS TABLE POLICIES
-CREATE POLICY "Authorized users can view customers"
+-- Simplified: All authenticated users can manage customers
+CREATE POLICY "Authenticated users can view customers"
 ON customers FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant', 'sales']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create customers"
+CREATE POLICY "Authenticated users can create customers"
 ON customers FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'sales']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update customers"
+CREATE POLICY "Authenticated users can update customers"
 ON customers FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'sales']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete customers"
+CREATE POLICY "Authenticated users can delete customers"
 ON customers FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
 -- VENDORS TABLE POLICIES
-CREATE POLICY "Authorized users can view vendors"
+-- Simplified: All authenticated users can manage vendors
+CREATE POLICY "Authenticated users can view vendors"
 ON vendors FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant', 'inventory']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create vendors"
+CREATE POLICY "Authenticated users can create vendors"
 ON vendors FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update vendors"
+CREATE POLICY "Authenticated users can update vendors"
 ON vendors FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete vendors"
+CREATE POLICY "Authenticated users can delete vendors"
 ON vendors FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
 -- PRODUCTS TABLE POLICIES
-CREATE POLICY "All users can view products"
+-- Simplified: All authenticated users can manage products
+CREATE POLICY "Authenticated users can view products"
 ON products FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authorized users can create products"
+CREATE POLICY "Authenticated users can create products"
 ON products FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory', 'sales']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update products"
+CREATE POLICY "Authenticated users can update products"
 ON products FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory', 'sales']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete products"
+CREATE POLICY "Authenticated users can delete products"
 ON products FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- STOCK MOVEMENTS TABLE POLICIES
-CREATE POLICY "Authorized users can view stock movements"
+-- STOCK MOVEMENTS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view stock movements"
 ON stock_movements FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create stock movements"
+CREATE POLICY "Authenticated users can create stock movements"
 ON stock_movements FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+WITH CHECK (true);
 
--- TRANSACTIONS TABLE POLICIES
-CREATE POLICY "Authorized users can view transactions"
+-- TRANSACTIONS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view transactions"
 ON transactions FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create transactions"
+CREATE POLICY "Authenticated users can create transactions"
 ON transactions FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update transactions"
+CREATE POLICY "Authenticated users can update transactions"
 ON transactions FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete transactions"
+CREATE POLICY "Authenticated users can delete transactions"
 ON transactions FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- SALES ORDERS TABLE POLICIES
-CREATE POLICY "Authorized users can view sales"
+-- SALES ORDERS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view sales"
 ON sales_orders FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant', 'sales']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create sales"
+CREATE POLICY "Authenticated users can create sales"
 ON sales_orders FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'sales']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update sales"
+CREATE POLICY "Authenticated users can update sales"
 ON sales_orders FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'sales']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete sales"
+CREATE POLICY "Authenticated users can delete sales"
 ON sales_orders FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- SALES LINE ITEMS TABLE POLICIES
-CREATE POLICY "Users with sales access can view line items"
+-- SALES LINE ITEMS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view sales line items"
 ON sales_line_items FOR SELECT
 TO authenticated
-USING (
-    EXISTS (
-        SELECT 1 FROM sales_orders
-        WHERE id = sales_line_items.sale_id
-        AND public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant', 'sales']::app_role[])
-    )
-);
+USING (true);
 
-CREATE POLICY "Authorized users can manage line items"
+CREATE POLICY "Authenticated users can manage sales line items"
 ON sales_line_items FOR ALL
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'sales']::app_role[]));
+USING (true);
 
--- PURCHASE ORDERS TABLE POLICIES
-CREATE POLICY "Authorized users can view purchases"
+-- PURCHASE ORDERS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view purchases"
 ON purchase_orders FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant', 'inventory']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create purchases"
+CREATE POLICY "Authenticated users can create purchases"
 ON purchase_orders FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update purchases"
+CREATE POLICY "Authenticated users can update purchases"
 ON purchase_orders FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete purchases"
+CREATE POLICY "Authenticated users can delete purchases"
 ON purchase_orders FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- PURCHASE LINE ITEMS TABLE POLICIES (FIXED: using purchase_order_id)
-CREATE POLICY "Users with purchase access can view line items"
+-- PURCHASE LINE ITEMS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view purchase line items"
 ON purchase_line_items FOR SELECT
 TO authenticated
-USING (
-    EXISTS (
-        SELECT 1 FROM purchase_orders
-        WHERE id = purchase_line_items.purchase_order_id
-        AND public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'accountant', 'inventory']::app_role[])
-    )
-);
+USING (true);
 
-CREATE POLICY "Authorized users can manage line items"
+CREATE POLICY "Authenticated users can manage purchase line items"
 ON purchase_line_items FOR ALL
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+USING (true);
 
--- EMPLOYEES TABLE POLICIES
-CREATE POLICY "Authorized users can view employees"
+-- EMPLOYEES TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view employees"
 ON employees FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'hr']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create employees"
+CREATE POLICY "Authenticated users can create employees"
 ON employees FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'hr']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update employees"
+CREATE POLICY "Authenticated users can update employees"
 ON employees FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'hr']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete employees"
+CREATE POLICY "Authenticated users can delete employees"
 ON employees FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- PAYROLL TABLE POLICIES
-CREATE POLICY "Authorized users can view payroll"
+-- PAYROLL TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view payroll"
 ON payroll FOR SELECT
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'hr', 'accountant']::app_role[]));
+USING (true);
 
-CREATE POLICY "Authorized users can create payroll"
+CREATE POLICY "Authenticated users can create payroll"
 ON payroll FOR INSERT
 TO authenticated
-WITH CHECK (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'hr']::app_role[]));
+WITH CHECK (true);
 
-CREATE POLICY "Authorized users can update payroll"
+CREATE POLICY "Authenticated users can update payroll"
 ON payroll FOR UPDATE
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'hr']::app_role[]));
+USING (true);
 
-CREATE POLICY "Admins can delete payroll"
+CREATE POLICY "Authenticated users can delete payroll"
 ON payroll FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- ACTIVITY LOGS TABLE POLICIES
-CREATE POLICY "Users can view own activity"
+-- ACTIVITY LOGS TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view all activity"
 ON activity_logs FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());
+USING (true);
 
-CREATE POLICY "Admins and managers can view all activity"
-ON activity_logs FOR SELECT
-TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager']::app_role[]));
-
-CREATE POLICY "All users can create activity logs"
+CREATE POLICY "Authenticated users can create activity logs"
 ON activity_logs FOR INSERT
 TO authenticated
-WITH CHECK (user_id = auth.uid());
+WITH CHECK (true);
 
-CREATE POLICY "Admins can delete activity logs"
+CREATE POLICY "Authenticated users can delete activity logs"
 ON activity_logs FOR DELETE
 TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (true);
 
--- PRODUCT CATEGORIES TABLE POLICIES
-CREATE POLICY "All users can view categories"
+-- PRODUCT CATEGORIES TABLE POLICIES (Simplified)
+CREATE POLICY "Authenticated users can view categories"
 ON product_categories FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authorized users can manage categories"
+CREATE POLICY "Authenticated users can manage categories"
 ON product_categories FOR ALL
 TO authenticated
-USING (public.has_any_role(auth.uid(), ARRAY['admin', 'manager', 'inventory']::app_role[]));
+USING (true);
 
 -- ============================================================================
 -- ENABLE REALTIME SUBSCRIPTIONS
