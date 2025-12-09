@@ -43,7 +43,7 @@ export function PurchaseFormDialog({ purchase, open, onOpenChange, onSave, vendo
         date: purchase.date.split("T")[0],
       });
     } else {
-      const nextOrderNumber = `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
+      const nextOrderNumber = `PO-${Date.now()}`;
       setFormData({
         orderNumber: nextOrderNumber,
         date: new Date().toISOString().split("T")[0],
