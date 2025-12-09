@@ -1140,10 +1140,10 @@ BEGIN
         VALUES (admin_user_id, 'admin@admin.com', 'Admin', 'active')
         ON CONFLICT (id) DO UPDATE SET name = 'Admin', status = 'active';
         
-        -- Assign admin role
+        -- Assign admin role (delete existing role first if any, then insert)
+        DELETE FROM user_roles WHERE user_id = admin_user_id;
         INSERT INTO user_roles (user_id, role)
-        VALUES (admin_user_id, 'admin')
-        ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
+        VALUES (admin_user_id, 'admin');
         
         -- Create identity for email provider
         INSERT INTO auth.identities (
