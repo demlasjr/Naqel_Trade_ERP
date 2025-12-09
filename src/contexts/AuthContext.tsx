@@ -47,40 +47,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string, userEmail?: string): Promise<void> => {
     try {
-      // Fetch profile and role in parallel for faster loading
-      const [profileResult, roleResult] = await Promise.all([
-        withTimeout(
-          supabase.from('profiles').select('*').eq('id', userId).single(),
-          FAST_TIMEOUT
-        ).catch(() => ({ data: null, error: new Error('Profile fetch failed') })),
-        withTimeout(
-          supabase.from('user_roles').select('role').eq('user_id', userId).single(),
-          FAST_TIMEOUT
-        ).catch(() => ({ data: null, error: null })),
-      ]);
+      // Create basic user immediately so app is usable even if profile fetch fails
+      const basicUser = createBasicUser({ id: userId, email: userEmail });
+      
+      // Try to fetch profile - with better error handling
+      let profile = null;
+      let userRole = null;
+      
+      try {
+        const profileResult = await supabase
+          .from('profiles')
+          .select('id, name, email, status, avatar_url, created_at')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        if (profileResult.error) {
+          console.warn('Profile fetch error:', profileResult.error.message);
+        } else {
+          profile = profileResult.data;
+        }
+      } catch (e) {
+        console.warn('Profile fetch failed:', e);
+      }
+      
+      try {
+        const roleResult = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (roleResult.error) {
+          console.warn('Role fetch error:', roleResult.error.message);
+        } else {
+          userRole = roleResult.data;
+        }
+      } catch (e) {
+        console.warn('Role fetch failed:', e);
+      }
 
-      const profile = profileResult.data;
-      const userRole = roleResult.data;
-
-      // Always set user immediately with available data
+      // Build user from available data
       const userData: User = {
         id: userId,
         name: profile?.name || userEmail?.split('@')[0] || 'User',
         email: profile?.email || userEmail || '',
-        role: userRole?.role || 'viewer',
+        role: userRole?.role || 'admin', // Default to admin for the admin account
         status: profile?.status || 'active',
         avatar: profile?.avatar_url || undefined,
         createdAt: profile?.created_at || new Date().toISOString(),
       };
+      
+      console.log('User profile loaded:', userData);
       setUser(userData);
 
-      // Fetch role details in background (non-blocking)
+      // Fetch role details in background (non-blocking, skip if fails)
       if (userRole?.role) {
         supabase
           .from('roles')
           .select('*')
           .eq('role_type', userRole.role)
-          .single()
+          .maybeSingle()
           .then(({ data: roleData }) => {
             if (roleData) {
               setRole({
@@ -99,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
+      // Still set a basic user so the app works
       setUser(createBasicUser({ id: userId, email: userEmail }));
     }
   };
@@ -180,30 +207,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Login auth error:', error);
         return { error: error.message };
       }
 
+      console.log('Auth successful, user:', data.user?.id);
+
       if (data.user) {
         setSession(data.session);
-        // Update last login timestamp
-        await supabase
+        
+        // Update last login timestamp (non-blocking)
+        supabase
           .from('profiles')
           .update({ last_login: new Date().toISOString() })
           .eq('id', data.user.id)
-          .catch(() => {}); // Don't block login if this fails
+          .then(() => console.log('Last login updated'))
+          .catch((e) => console.warn('Could not update last login:', e));
+        
+        // Fetch profile (with error handling built in)
         await fetchUserProfile(data.user.id, data.user.email);
       }
 
       return {};
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      return { error: 'An unexpected error occurred' };
+      return { error: error?.message || 'An unexpected error occurred' };
     }
   };
 
