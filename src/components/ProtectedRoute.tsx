@@ -17,8 +17,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Check both user and session - session is the source of truth from Supabase
-  if (!user && !session) {
+  // Session is the source of truth from Supabase - if no session, redirect to login
+  if (!session) {
     return <Navigate to="/login" replace />;
   }
 

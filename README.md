@@ -1,73 +1,206 @@
-# Welcome to your Lovable project
+# Naqel Trade ERP
 
-## Project info
+A comprehensive Enterprise Resource Planning (ERP) system built with React, TypeScript, and Supabase.
 
-**URL**: https://lovable.dev/projects/1c9982bd-925c-4a4d-abe3-bb90b67f9a82
+## Features
 
-## How can I edit this code?
+- **Sales Management**: Create and manage sales orders, track customers, and monitor revenue
+- **Purchase Management**: Handle purchase orders, manage vendors, and track inventory
+- **Inventory Management**: Track products, stock levels, and stock movements
+- **Accounting**: Chart of Accounts, transactions, and financial reporting
+- **HR & Payroll**: Employee management and payroll processing
+- **Activity Logging**: Complete audit trail of all system activities
+- **User Management**: Role-based access control with granular permissions
+- **Real-time Updates**: Automatic data synchronization across the application
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: shadcn/ui, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Authentication, Realtime)
+- **State Management**: React Query (TanStack Query)
+- **Routing**: React Router
+- **Forms**: React Hook Form with Zod validation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1c9982bd-925c-4a4d-abe3-bb90b67f9a82) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm/bun
+- A Supabase account and project
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone the repository**
+   ```bash
+   git clone <YOUR_GIT_URL>
+   cd Naqel_Trade_ERP
+   ```
 
-Follow these steps:
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   bun install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Set up environment variables**
+   
+   Create a `.env.local` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. **Set up the database**
+   
+   - Go to your Supabase project dashboard
+   - Navigate to SQL Editor
+   - Open the `database.sql` file from the root of this project
+   - Copy and paste the entire contents into the SQL Editor
+   - Click "Run" to execute
+   
+   This will create:
+   - All database tables
+   - All indexes for performance
+   - All triggers for auto-updates
+   - All Row Level Security (RLS) policies
+   - Realtime subscriptions
 
-# Step 3: Install the necessary dependencies.
-npm i
+5. **Start the development server**
+   ```bash
+   npm run dev
+   # or
+   bun run dev
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+6. **Access the application**
+   
+   Open your browser and navigate to `http://localhost:5173`
+
+## Database Setup
+
+The `database.sql` file contains everything needed for a fresh database installation:
+
+- **ENUM Types**: All custom types (app_role, account_type, transaction_type, etc.)
+- **Tables**: All 18+ tables with correct column names
+- **Indexes**: Performance indexes on frequently queried columns
+- **Triggers**: Auto-update triggers for `updated_at` columns
+- **RLS Policies**: Complete Row Level Security policies for all tables
+- **Realtime**: Realtime subscriptions enabled for key tables
+
+### Important Notes
+
+- The `database.sql` file is **idempotent** - you can run it multiple times safely
+- It uses `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` to avoid errors
+- All existing policies are dropped before creating new ones to prevent duplicates
+- The file fixes the `purchase_line_items` table to use `purchase_order_id` (not `purchase_id`)
+
+## Project Structure
+
+```
+Naqel_Trade_ERP/
+├── src/
+│   ├── components/      # React components
+│   ├── hooks/          # Custom React hooks
+│   ├── pages/          # Page components
+│   ├── types/          # TypeScript type definitions
+│   ├── contexts/       # React contexts (Auth, etc.)
+│   └── lib/            # Utility functions
+├── public/             # Static assets
+├── database.sql        # Complete database setup script
+└── README.md          # This file
 ```
 
-**Edit a file directly in GitHub**
+## Key Features
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Authentication
+- Email/password authentication via Supabase Auth
+- Automatic profile creation on signup
+- Role-based access control
 
-**Use GitHub Codespaces**
+### Sales Module
+- Create and manage sales orders
+- Track customer information
+- Automatic inventory updates
+- Transaction creation
+- Activity logging
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Purchase Module
+- Create and manage purchase orders
+- Track vendor information
+- Automatic inventory updates
+- Transaction creation
+- Activity logging
 
-## What technologies are used for this project?
+### Chart of Accounts
+- Hierarchical account structure
+- CSV import functionality
+- Protection for imported accounts
+- Account balance tracking
 
-This project is built with:
+### Real-time Updates
+- Automatic data synchronization
+- No page refresh needed
+- Live updates across all modules
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deployment
 
-## How can I deploy this project?
+### Deploy to Netlify
 
-Simply open [Lovable](https://lovable.dev/projects/1c9982bd-925c-4a4d-abe3-bb90b67f9a82) and click on Share -> Publish.
+1. Build the project:
+   ```bash
+   npm run build
+   ```
 
-## Can I connect a custom domain to my Lovable project?
+2. Deploy to Netlify:
+   - Connect your GitHub repository
+   - Set build command: `npm run build`
+   - Set publish directory: `dist`
+   - Add environment variables in Netlify dashboard
 
-Yes, you can!
+3. The `public/_redirects` file ensures proper SPA routing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Deploy to Vercel
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+1. Connect your GitHub repository to Vercel
+2. Vercel will automatically detect the Vite configuration
+3. Add environment variables in Vercel dashboard
+
+## Troubleshooting
+
+### Database Issues
+
+If you encounter RLS policy errors:
+1. Make sure you've run the complete `database.sql` file
+2. Verify that all tables have RLS enabled
+3. Check that policies exist: `SELECT * FROM pg_policies;`
+
+### Login Issues
+
+If login doesn't work:
+1. Verify RLS policies for `profiles` and `user_roles` tables
+2. Check that the `handle_new_user()` trigger is created
+3. Ensure your user has a role assigned in `user_roles` table
+
+### Build Issues
+
+If the build fails:
+1. Check for TypeScript errors: `npm run build`
+2. Verify all environment variables are set
+3. Ensure all dependencies are installed
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+This project is proprietary software.
+
+## Support
+
+For issues and questions, please open an issue in the GitHub repository.
