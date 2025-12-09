@@ -241,7 +241,8 @@ export default function Sales() {
                     <th className="p-4 text-left font-medium">Order #</th>
                     <th className="p-4 text-left font-medium">Customer</th>
                     <th className="p-4 text-left font-medium">Date</th>
-                    <th className="p-4 text-left font-medium">Due Date</th>
+                    <th className="p-4 text-center font-medium">Qty</th>
+                    <th className="p-4 text-left font-medium">Products</th>
                     <th className="p-4 text-left font-medium">Status</th>
                     <th className="p-4 text-right font-medium">Total</th>
                     <th className="p-4 text-right font-medium">Paid</th>
@@ -261,7 +262,14 @@ export default function Sales() {
                       <td className="p-4 font-medium">{sale.orderNumber}</td>
                       <td className="p-4">{sale.customerName}</td>
                       <td className="p-4">{format(new Date(sale.date), "PP")}</td>
-                      <td className="p-4">{format(new Date(sale.dueDate), "PP")}</td>
+                      <td className="p-4 text-center">{sale.lineItems.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                      <td className="p-4">
+                        <span className="text-sm text-muted-foreground">
+                          {sale.lineItems.length > 0 
+                            ? sale.lineItems.map(item => item.productName).filter(Boolean).join(", ") || `${sale.lineItems.length} item(s)`
+                            : "-"}
+                        </span>
+                      </td>
                       <td className="p-4">
                         <Badge className={statusColors[sale.status]}>
                           {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SalesOrder, LineItem } from "@/types/sale";
@@ -11,11 +11,7 @@ export function useSales() {
   const queryClient = useQueryClient();
   const { createActivityLog } = useActivityLogs();
 
-  useEffect(() => {
-    fetchSales();
-  }, []);
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -37,7 +33,10 @@ export function useSales() {
       if (salesIds.length > 0) {
         const { data: lineItems, error: lineItemsError } = await supabase
           .from("sales_line_items")
-          .select("*")
+          .select(`
+            *,
+            product:products(name, sku)
+          `)
           .in("sale_id", salesIds);
         
         if (!lineItemsError && lineItems) {
@@ -61,8 +60,8 @@ export function useSales() {
         lineItems: (lineItemsMap[sale.id] || []).map((item: any): LineItem => ({
           id: item.id,
           productId: item.product_id,
-          productName: "",
-          sku: "",
+          productName: item.product?.name || "",
+          sku: item.product?.sku || "",
           quantity: item.quantity,
           unitPrice: item.unit_price,
           discount: item.discount || 0,
@@ -87,7 +86,38 @@ export function useSales() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Initial fetch and Realtime subscription
+  useEffect(() => {
+    fetchSales();
+
+    // Subscribe to realtime changes on sales_orders table
+    const channel = supabase
+      .channel('sales_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sales_orders'
+        },
+        (payload) => {
+          console.log('Sales order change detected:', payload.eventType);
+          // Refetch data on any change
+          fetchSales();
+          // Also invalidate related queries
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchSales, queryClient]);
 
   const createSalesOrder = async (orderData: Partial<SalesOrder>) => {
     try {
@@ -348,12 +378,38 @@ export function useSales() {
 
   const bulkUpdateStatus = async (ids: string[], status: string) => {
     try {
-      const { error } = await supabase
-        .from("sales_orders")
-        .update({ status, updated_at: new Date().toISOString() })
-        .in("id", ids);
+      // If status is "paid", we need to update paidAmount and balance as well
+      if (status === "paid") {
+        // Fetch orders to get their totals
+        const { data: orders, error: fetchError } = await supabase
+          .from("sales_orders")
+          .select("id, total")
+          .in("id", ids);
 
-      if (error) throw error;
+        if (fetchError) throw fetchError;
+
+        // Update each order with correct paidAmount and balance
+        for (const order of orders || []) {
+          const { error } = await supabase
+            .from("sales_orders")
+            .update({ 
+              status, 
+              paid_amount: order.total,
+              balance: 0,
+              updated_at: new Date().toISOString() 
+            })
+            .eq("id", order.id);
+
+          if (error) throw error;
+        }
+      } else {
+        const { error } = await supabase
+          .from("sales_orders")
+          .update({ status, updated_at: new Date().toISOString() })
+          .in("id", ids);
+
+        if (error) throw error;
+      }
 
       toast.success(`${ids.length} sales order(s) updated successfully`);
       await fetchSales();

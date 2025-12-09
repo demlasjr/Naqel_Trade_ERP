@@ -165,12 +165,17 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
     const customer = customers.find((c) => c.id === formData.customerId);
     const totals = calculateTotals(formData.lineItems);
 
+    // If status is "paid", set paidAmount to total and balance to 0
+    const isPaid = formData.status === "paid";
+    const paidAmount = isPaid ? totals.total : (sale?.paidAmount || 0);
+    const balance = isPaid ? 0 : (totals.total - paidAmount);
+
     const saleData: Partial<SalesOrder> = {
       ...formData,
       customerName: customer?.name || "",
       ...totals,
-      paidAmount: sale?.paidAmount || 0,
-      balance: totals.total - (sale?.paidAmount || 0),
+      paidAmount,
+      balance,
     };
 
     try {
