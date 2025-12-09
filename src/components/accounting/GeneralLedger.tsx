@@ -23,10 +23,13 @@ import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
 
 export default function GeneralLedger() {
-  const { accounts, isLoading: isLoadingAccounts, refetch: refetchAccounts } = useAccounts();
-  const { transactions, isLoading: isLoadingTransactions, refetch: refetchTransactions } = useTransactions();
+  const { accounts, isLoading: isLoadingAccounts, error: accountsError, refetch: refetchAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions, error: transactionsError, refetch: refetchTransactions } = useTransactions();
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [search, setSearch] = useState("");
+
+  // Debug logging
+  console.log("[GeneralLedger] accounts:", accounts?.length || 0, "transactions:", transactions?.length || 0);
 
   // Force refetch periodically to ensure data is fresh
   useEffect(() => {
@@ -96,7 +99,45 @@ export default function GeneralLedger() {
   }, [selectedAccount, transactions, search]);
 
   if (isLoadingAccounts || isLoadingTransactions) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <LoadingSpinner />
+        <p className="text-muted-foreground">Loading ledger data...</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (accountsError || transactionsError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-destructive font-medium">Error loading data</p>
+        <p className="text-sm text-muted-foreground">
+          {accountsError?.message || transactionsError?.message || "Unknown error"}
+        </p>
+        <button 
+          onClick={() => {
+            refetchAccounts();
+            refetchTransactions();
+          }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Show empty state if no accounts
+  if (accounts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-muted-foreground">No accounts found</p>
+        <p className="text-sm text-muted-foreground">
+          Create accounts in Chart of Accounts first.
+        </p>
+      </div>
+    );
   }
 
   return (

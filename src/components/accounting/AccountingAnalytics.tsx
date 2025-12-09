@@ -7,8 +7,12 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 
 export default function AccountingAnalytics() {
-  const { accounts, isLoading: isLoadingAccounts } = useAccounts();
-  const { transactions, isLoading: isLoadingTransactions } = useTransactions();
+  const { accounts, isLoading: isLoadingAccounts, error: accountsError, refetch: refetchAccounts } = useAccounts();
+  const { transactions, isLoading: isLoadingTransactions, error: transactionsError, refetch: refetchTransactions } = useTransactions();
+
+  // Debug logging
+  console.log("[AccountingAnalytics] accounts:", accounts?.length || 0, "transactions:", transactions?.length || 0);
+  console.log("[AccountingAnalytics] errors:", { accountsError, transactionsError });
 
   const analytics = useMemo(() => {
     const assets = accounts.filter(a => a.type === 'Assets');
@@ -75,7 +79,54 @@ export default function AccountingAnalytics() {
   }, [accounts, transactions]);
 
   if (isLoadingAccounts || isLoadingTransactions) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <LoadingSpinner />
+        <p className="text-muted-foreground">Loading accounting data...</p>
+      </div>
+    );
+  }
+
+  // Show error state with retry button
+  if (accountsError || transactionsError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-destructive font-medium">Error loading data</p>
+        <p className="text-sm text-muted-foreground">
+          {accountsError?.message || transactionsError?.message || "Unknown error"}
+        </p>
+        <button 
+          onClick={() => {
+            refetchAccounts();
+            refetchTransactions();
+          }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (accounts.length === 0 && transactions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-muted-foreground">No accounting data found</p>
+        <p className="text-sm text-muted-foreground">
+          Create accounts in Chart of Accounts and make some sales/purchases to see data here.
+        </p>
+        <button 
+          onClick={() => {
+            refetchAccounts();
+            refetchTransactions();
+          }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Refresh Data
+        </button>
+      </div>
+    );
   }
 
   return (
