@@ -17,13 +17,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function with timeout
+// Helper function with timeout (reduced for faster loading)
 const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('Timeout')), ms)
   );
   return Promise.race([promise, timeout]);
 };
+
+// Faster timeout values
+const FAST_TIMEOUT = 3000; // 3 seconds for critical operations
+const INIT_TIMEOUT = 5000; // 5 seconds max for initialization
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -43,66 +47,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string, userEmail?: string): Promise<void> => {
     try {
-      // Try to fetch profile with timeout
-      const { data: profile, error: profileError } = await withTimeout(
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single(),
-        5000 // 5 second timeout
-      );
+      // Fetch profile and role in parallel for faster loading
+      const [profileResult, roleResult] = await Promise.all([
+        withTimeout(
+          supabase.from('profiles').select('*').eq('id', userId).single(),
+          FAST_TIMEOUT
+        ).catch(() => ({ data: null, error: new Error('Profile fetch failed') })),
+        withTimeout(
+          supabase.from('user_roles').select('role').eq('user_id', userId).single(),
+          FAST_TIMEOUT
+        ).catch(() => ({ data: null, error: null })),
+      ]);
 
-      if (profileError || !profile) {
-        console.warn('Could not fetch profile, using basic user data:', profileError?.message);
-        setUser(createBasicUser({ id: userId, email: userEmail }));
-        return;
-      }
+      const profile = profileResult.data;
+      const userRole = roleResult.data;
 
-      // Try to fetch user role
-      const { data: userRole } = await withTimeout(
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .single(),
-        3000
-      ).catch(() => ({ data: null }));
-
+      // Always set user immediately with available data
       const userData: User = {
-        id: profile.id,
-        name: profile.name || userEmail?.split('@')[0] || 'User',
-        email: profile.email || userEmail || '',
+        id: userId,
+        name: profile?.name || userEmail?.split('@')[0] || 'User',
+        email: profile?.email || userEmail || '',
         role: userRole?.role || 'viewer',
-        status: profile.status || 'active',
-        avatar: profile.avatar_url || undefined,
-        createdAt: profile.created_at,
+        status: profile?.status || 'active',
+        avatar: profile?.avatar_url || undefined,
+        createdAt: profile?.created_at || new Date().toISOString(),
       };
       setUser(userData);
 
-      // Try to fetch role details (non-blocking)
+      // Fetch role details in background (non-blocking)
       if (userRole?.role) {
-        const { data: roleData } = await withTimeout(
-          supabase
-            .from('roles')
-            .select('*')
-            .eq('role_type', userRole.role)
-            .single(),
-          3000
-        ).catch(() => ({ data: null }));
-
-        if (roleData) {
-          setRole({
-            id: roleData.id,
-            name: roleData.name,
-            roleType: roleData.role_type,
-            description: roleData.description || '',
-            permissions: [],
-            userCount: 0,
-            isSystemRole: roleData.is_system_role || false,
-            createdAt: roleData.created_at,
-          });
-        }
+        supabase
+          .from('roles')
+          .select('*')
+          .eq('role_type', userRole.role)
+          .single()
+          .then(({ data: roleData }) => {
+            if (roleData) {
+              setRole({
+                id: roleData.id,
+                name: roleData.name,
+                roleType: roleData.role_type,
+                description: roleData.description || '',
+                permissions: [],
+                userCount: 0,
+                isSystemRole: roleData.is_system_role || false,
+                createdAt: roleData.created_at,
+              });
+            }
+          })
+          .catch(() => {}); // Ignore errors for non-critical data
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -116,13 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        // Set a maximum timeout for the entire init process
+        // Set a maximum timeout for the entire init process (reduced for faster UX)
         initTimeout = setTimeout(() => {
           if (mounted && isLoading) {
             console.warn('Auth initialization timeout, proceeding without user data');
             setIsLoading(false);
           }
-        }, 10000); // 10 second max timeout
+        }, INIT_TIMEOUT);
 
         // Get current session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();

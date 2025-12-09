@@ -8,14 +8,12 @@ export function useActivityLogs() {
   const activityLogsQuery = useQuery({
     queryKey: ["activityLogs"],
     queryFn: async () => {
+      // Simplified query without JOIN for faster loading
       const { data, error } = await supabase
         .from("activity_logs")
-        .select(`
-          *,
-          user:profiles!activity_logs_user_id_fkey(id, name, email)
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
-        .limit(500); // Reduced limit for better performance
+        .limit(100); // Reduced limit for much faster loading
 
       if (error) {
         console.error("Error fetching activity logs:", error);
@@ -30,8 +28,8 @@ export function useActivityLogs() {
         actionType: (log.action_type || log.action) as ActivityActionType,
         description: log.description || log.details?.description || log.action || "Activity performed",
         userId: log.user_id,
-        userName: log.user?.name || "Unknown",
-        userEmail: log.user?.email || "",
+        userName: "User", // Simplified - no JOIN needed
+        userEmail: "",
         timestamp: new Date(log.timestamp || log.created_at),
         metadata: {
           entityId: log.entity_id,
@@ -40,7 +38,7 @@ export function useActivityLogs() {
         },
       })) as ActivityLog[];
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 60000, // Cache for 1 minute
   });
 
   const createActivityLog = useMutation({
