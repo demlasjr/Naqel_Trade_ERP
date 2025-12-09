@@ -33,7 +33,7 @@ export default function BackupRestore() {
 
   const createBackup = async () => {
     if (!user) {
-      toast.error("Debes estar autenticado para crear un backup");
+      toast.error("You must be authenticated to create a backup");
       return;
     }
 
@@ -93,16 +93,16 @@ export default function BackupRestore() {
       const totalRecords = Object.values(backupData).reduce((sum, arr) => sum + arr.length, 0);
       setBackupStatus({
         type: 'success',
-        message: `Backup creado exitosamente. ${totalRecords} registros exportados.`,
+        message: `Backup created successfully. ${totalRecords} records exported.`,
       });
-      toast.success(`Backup creado exitosamente (${totalRecords} registros)`);
+      toast.success(`Backup created successfully (${totalRecords} records)`);
     } catch (error: any) {
       console.error('Error creating backup:', error);
       setBackupStatus({
         type: 'error',
-        message: `Error al crear backup: ${error.message}`,
+        message: `Error creating backup: ${error.message}`,
       });
-      toast.error('Error al crear backup: ' + error.message);
+      toast.error('Error creating backup: ' + error.message);
     } finally {
       setIsBackingUp(false);
     }
@@ -113,7 +113,7 @@ export default function BackupRestore() {
     if (!file) return;
 
     if (!user) {
-      toast.error("Debes estar autenticado para restaurar un backup");
+      toast.error("You must be authenticated to restore a backup");
       return;
     }
 
@@ -126,15 +126,15 @@ export default function BackupRestore() {
       const backup = JSON.parse(text);
 
       if (!backup.data || typeof backup.data !== 'object') {
-        throw new Error('Formato de backup inválido');
+        throw new Error('Invalid backup format');
       }
 
       // Confirm restore
       const confirmed = window.confirm(
-        `¿Estás seguro de restaurar este backup?\n\n` +
-        `Fecha del backup: ${backup.created_at ? new Date(backup.created_at).toLocaleString() : 'Desconocida'}\n` +
-        `Creado por: ${backup.created_by_email || 'Desconocido'}\n\n` +
-        `ADVERTENCIA: Esta acción eliminará todos los datos actuales y los reemplazará con los datos del backup.`
+        `Are you sure you want to restore this backup?\n\n` +
+        `Backup date: ${backup.created_at ? new Date(backup.created_at).toLocaleString() : 'Unknown'}\n` +
+        `Created by: ${backup.created_by_email || 'Unknown'}\n\n` +
+        `WARNING: This action will delete all current data and replace it with the backup data.`
       );
 
       if (!confirmed) {
@@ -207,15 +207,15 @@ export default function BackupRestore() {
       if (errors.length > 0) {
         setBackupStatus({
           type: 'error',
-          message: `Restauración completada con errores. ${totalRestored} registros restaurados. Errores: ${errors.join(', ')}`,
+          message: `Restore completed with errors. ${totalRestored} records restored. Errors: ${errors.join(', ')}`,
         });
-        toast.error(`Restauración completada con algunos errores (${totalRestored} registros)`);
+        toast.error(`Restore completed with some errors (${totalRestored} records)`);
       } else {
         setBackupStatus({
           type: 'success',
-          message: `Restauración completada exitosamente. ${totalRestored} registros restaurados.`,
+          message: `Restore completed successfully. ${totalRestored} records restored.`,
         });
-        toast.success(`Restauración completada exitosamente (${totalRestored} registros)`);
+        toast.success(`Restore completed successfully (${totalRestored} records)`);
         
         // Refresh the page after a delay to show updated data
         setTimeout(() => {
@@ -226,9 +226,9 @@ export default function BackupRestore() {
       console.error('Error restoring backup:', error);
       setBackupStatus({
         type: 'error',
-        message: `Error al restaurar backup: ${error.message}`,
+        message: `Error restoring backup: ${error.message}`,
       });
-      toast.error('Error al restaurar backup: ' + error.message);
+      toast.error('Error restoring backup: ' + error.message);
     } finally {
       setIsRestoring(false);
       // Reset file input
@@ -241,7 +241,7 @@ export default function BackupRestore() {
       <div>
         <h1 className="text-3xl font-bold">Backup & Restore</h1>
         <p className="text-muted-foreground mt-2">
-          Crea backups de tus datos y restáuralos cuando sea necesario
+          Create backups of your data and restore them when needed
         </p>
       </div>
 
@@ -253,7 +253,7 @@ export default function BackupRestore() {
             <AlertTriangle className="h-4 w-4" />
           )}
           <AlertTitle>
-            {backupStatus.type === 'success' ? 'Éxito' : 'Error'}
+            {backupStatus.type === 'success' ? 'Success' : 'Error'}
           </AlertTitle>
           <AlertDescription>{backupStatus.message}</AlertDescription>
         </Alert>
@@ -265,25 +265,25 @@ export default function BackupRestore() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-primary" />
-              <CardTitle>Crear Backup</CardTitle>
+              <CardTitle>Create Backup</CardTitle>
             </div>
             <CardDescription>
-              Exporta todos tus datos a un archivo JSON para guardarlos de forma segura
+              Export all your data to a JSON file for safe storage
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                El backup incluirá:
+                The backup will include:
               </p>
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                <li>Cuentas contables</li>
-                <li>Clientes y proveedores</li>
-                <li>Productos e inventario</li>
-                <li>Órdenes de venta y compra</li>
-                <li>Transacciones</li>
-                <li>Empleados y nómina</li>
-                <li>Registros de actividad</li>
+                <li>Chart of accounts</li>
+                <li>Customers and vendors</li>
+                <li>Products and inventory</li>
+                <li>Sales and purchase orders</li>
+                <li>Transactions</li>
+                <li>Employees and payroll</li>
+                <li>Activity logs</li>
               </ul>
             </div>
             <Button
@@ -293,7 +293,7 @@ export default function BackupRestore() {
               size="lg"
             >
               <Download className="h-4 w-4 mr-2" />
-              {isBackingUp ? 'Creando backup...' : 'Crear Backup'}
+              {isBackingUp ? 'Creating backup...' : 'Create Backup'}
             </Button>
           </CardContent>
         </Card>
@@ -303,19 +303,19 @@ export default function BackupRestore() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
-              <CardTitle>Restaurar Backup</CardTitle>
+              <CardTitle>Restore Backup</CardTitle>
             </div>
             <CardDescription>
-              Restaura tus datos desde un archivo de backup previamente creado
+              Restore your data from a previously created backup file
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Advertencia</AlertTitle>
+              <AlertTitle>Warning</AlertTitle>
               <AlertDescription>
-                Restaurar un backup reemplazará todos los datos actuales. 
-                Asegúrate de crear un backup antes de restaurar.
+                Restoring a backup will replace all current data. 
+                Make sure to create a backup before restoring.
               </AlertDescription>
             </Alert>
             <div className="space-y-2">
@@ -329,7 +329,7 @@ export default function BackupRestore() {
                 >
                   <span>
                     <Upload className="h-4 w-4 mr-2" />
-                    {isRestoring ? 'Restaurando...' : 'Seleccionar Archivo de Backup'}
+                    {isRestoring ? 'Restoring...' : 'Select Backup File'}
                   </span>
                 </Button>
               </label>
@@ -342,7 +342,7 @@ export default function BackupRestore() {
                 disabled={isRestoring}
               />
               <p className="text-xs text-muted-foreground text-center">
-                Solo archivos .json
+                .json files only
               </p>
             </div>
           </CardContent>
@@ -351,24 +351,24 @@ export default function BackupRestore() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Información Importante</CardTitle>
+          <CardTitle>Important Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <h4 className="font-semibold">Recomendaciones:</h4>
+            <h4 className="font-semibold">Recommendations:</h4>
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-              <li>Crea backups regularmente, especialmente antes de hacer cambios importantes</li>
-              <li>Guarda los archivos de backup en un lugar seguro y fuera del servidor</li>
-              <li>Verifica que el backup se haya creado correctamente antes de eliminar datos</li>
-              <li>Los backups incluyen todos los datos excepto información de usuarios y autenticación</li>
+              <li>Create backups regularly, especially before making important changes</li>
+              <li>Store backup files in a safe location outside the server</li>
+              <li>Verify that the backup was created correctly before deleting data</li>
+              <li>Backups include all data except user information and authentication</li>
             </ul>
           </div>
           <div className="space-y-2">
-            <h4 className="font-semibold">Limitaciones:</h4>
+            <h4 className="font-semibold">Limitations:</h4>
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-              <li>Los backups no incluyen información de usuarios, roles y autenticación</li>
-              <li>Las relaciones entre registros se mantienen mediante IDs</li>
-              <li>Los timestamps se regeneran al restaurar (created_at, updated_at)</li>
+              <li>Backups do not include user information, roles, and authentication</li>
+              <li>Relationships between records are maintained through IDs</li>
+              <li>Timestamps are regenerated when restoring (created_at, updated_at)</li>
             </ul>
           </div>
         </CardContent>

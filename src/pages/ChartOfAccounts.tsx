@@ -28,6 +28,7 @@ export default function ChartOfAccounts() {
   const { 
     accounts, 
     isLoading, 
+    error: accountsError,
     createAccount, 
     updateAccount, 
     deleteAccount: deleteAccountMutation,
@@ -36,6 +37,9 @@ export default function ChartOfAccounts() {
     importAccounts,
     refetch: refetchAccounts
   } = useAccounts();
+
+  // Debug logging
+  console.log("[ChartOfAccounts] accounts:", accounts?.length || 0, "isLoading:", isLoading, "error:", accountsError);
   
   // Force refetch accounts periodically to ensure balances are up to date
   useEffect(() => {
@@ -158,8 +162,29 @@ export default function ChartOfAccounts() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
         <LoadingSpinner />
+        <p className="text-muted-foreground">Loading chart of accounts...</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (accountsError) {
+    return (
+      <div className="p-6">
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <p className="text-destructive font-medium">Error loading accounts</p>
+          <p className="text-sm text-muted-foreground">
+            {accountsError?.message || "Unknown error occurred"}
+          </p>
+          <button 
+            onClick={() => refetchAccounts()}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
