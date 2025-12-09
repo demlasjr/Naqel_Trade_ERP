@@ -158,6 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setRole(null);
         } else if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          // Update last login timestamp on sign in
+          if (event === 'SIGNED_IN') {
+            await supabase
+              .from('profiles')
+              .update({ last_login: new Date().toISOString() })
+              .eq('id', newSession.user.id)
+              .catch(() => {}); // Don't block if this fails
+          }
           await fetchUserProfile(newSession.user.id, newSession.user.email);
         }
       }
@@ -183,6 +191,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         setSession(data.session);
+        // Update last login timestamp
+        await supabase
+          .from('profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', data.user.id)
+          .catch(() => {}); // Don't block login if this fails
         await fetchUserProfile(data.user.id, data.user.email);
       }
 

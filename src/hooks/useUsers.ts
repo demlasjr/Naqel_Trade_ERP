@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User, AppRole } from "@/types/user";
 import { toast } from "@/lib/toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useUsers() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   const usersQuery = useQuery({
     queryKey: ["users"],
@@ -96,6 +98,16 @@ export function useUsers() {
 
   const updateUser = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: Partial<User> }) => {
+      // Security check: Only admins can assign admin role
+      if (data.role === 'admin' && currentUser?.role !== 'admin') {
+        throw new Error("Only administrators can assign the admin role");
+      }
+
+      // Security check: Users cannot promote themselves to admin
+      if (data.role === 'admin' && userId === currentUser?.id) {
+        throw new Error("You cannot promote yourself to administrator");
+      }
+
       // Update profile
       const { error: profileError } = await supabase
         .from("profiles")

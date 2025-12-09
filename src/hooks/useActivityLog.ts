@@ -8,37 +8,43 @@ export function useActivityLogs() {
   const activityLogsQuery = useQuery({
     queryKey: ["activityLogs"],
     queryFn: async () => {
-      // Simplified query without JOIN for faster loading
+      // Fetch logs with user info
       const { data, error } = await supabase
         .from("activity_logs")
-        .select("*")
+        .select(`
+          *,
+          user:profiles!activity_logs_user_id_fkey(id, name, email)
+        `)
         .order("created_at", { ascending: false })
-        .limit(100); // Reduced limit for much faster loading
+        .limit(200); // Increased limit
 
       if (error) {
         console.error("Error fetching activity logs:", error);
         throw error;
       }
 
-      if (!data) return [];
+      if (!data || data.length === 0) {
+        console.log("No activity logs found in database");
+        return [];
+      }
 
       return data.map((log: any) => ({
         id: log.id,
         module: log.module as ActivityModule,
         actionType: (log.action_type || log.action) as ActivityActionType,
-        description: log.description || log.details?.description || log.action || "Activity performed",
+        description: log.description || log.action || "Activity performed",
         userId: log.user_id,
-        userName: "User", // Simplified - no JOIN needed
-        userEmail: "",
+        userName: log.user?.name || "Unknown User",
+        userEmail: log.user?.email || "",
         timestamp: new Date(log.timestamp || log.created_at),
         metadata: {
           entityId: log.entity_id,
           entityType: log.entity_type,
-          ...(log.metadata || log.details || {}),
+          ...(log.metadata || {}),
         },
       })) as ActivityLog[];
     },
-    staleTime: 60000, // Cache for 1 minute
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   const createActivityLog = useMutation({
@@ -51,24 +57,38 @@ export function useActivityLogs() {
       metadata?: any;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      if (!user) {
+        console.warn("Cannot create activity log: User not authenticated");
+        return; // Don't throw, just skip logging
+      }
 
-      const { error } = await supabase.from("activity_logs").insert({
+      const insertData: any = {
         user_id: user.id,
         action: logData.actionType,
+        action_type: logData.actionType,
         module: logData.module,
-        entity_type: logData.entityType,
-        entity_id: logData.entityId,
-        details: {
-          description: logData.description,
-          ...logData.metadata,
-        },
-      });
+        description: logData.description,
+      };
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["activityLogs"] });
+      if (logData.entityType) {
+        insertData.entity_type = logData.entityType;
+      }
+      if (logData.entityId) {
+        insertData.entity_id = logData.entityId;
+      }
+      if (logData.metadata) {
+        insertData.metadata = logData.metadata;
+      }
+
+      const { error } = await supabase.from("activity_logs").insert(insertData);
+
+      if (error) {
+        console.error("Error creating activity log:", error);
+        // Don't throw - activity logging should not break the app
+      } else {
+        // Invalidate queries on success
+        queryClient.invalidateQueries({ queryKey: ["activityLogs"] });
+      }
     },
   });
 

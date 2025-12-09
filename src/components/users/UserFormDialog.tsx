@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { User, AppRole } from "@/types/user";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserFormDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface UserFormDialogProps {
 }
 
 export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDialogProps) {
+  const { user: currentUser } = useAuth();
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -29,6 +31,11 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Check if current user can assign admin role
+  const canAssignAdmin = currentUser?.role === 'admin';
+  // Check if editing self
+  const isEditingSelf = user?.id === currentUser?.id;
 
   useEffect(() => {
     if (open) {
@@ -141,13 +148,29 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
             </label>
             <Select
               value={formData.role}
-              onValueChange={(value: AppRole) => setFormData({ ...formData, role: value })}
+              onValueChange={(value: AppRole) => {
+                // Prevent non-admins from selecting admin
+                if (value === 'admin' && !canAssignAdmin) {
+                  toast.error("Only administrators can assign the admin role");
+                  return;
+                }
+                // Prevent self-promotion to admin
+                if (value === 'admin' && isEditingSelf) {
+                  toast.error("You cannot promote yourself to administrator");
+                  return;
+                }
+                setFormData({ ...formData, role: value });
+              }}
             >
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrator</SelectItem>
+                {canAssignAdmin && (
+                  <SelectItem value="admin" disabled={isEditingSelf}>
+                    Administrator {isEditingSelf && "(Cannot assign to yourself)"}
+                  </SelectItem>
+                )}
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="accountant">Accountant</SelectItem>
                 <SelectItem value="sales">Sales</SelectItem>
@@ -156,6 +179,16 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
                 <SelectItem value="viewer">Viewer</SelectItem>
               </SelectContent>
             </Select>
+            {!canAssignAdmin && formData.role === 'admin' && (
+              <p className="text-sm text-destructive">
+                Only administrators can assign the admin role
+              </p>
+            )}
+            {isEditingSelf && formData.role === 'admin' && (
+              <p className="text-sm text-destructive">
+                You cannot promote yourself to administrator
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
