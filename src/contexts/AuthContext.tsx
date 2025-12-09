@@ -22,20 +22,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserProfile = async (userId: string) => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+  const fetchUserProfile = async (userId: string, userEmail?: string) => {
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    const { data: userRole } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .single();
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        // Create a basic user from auth data if profile fetch fails
+        setUser({
+          id: userId,
+          name: userEmail?.split('@')[0] || 'User',
+          email: userEmail || '',
+          role: 'viewer',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
 
-    if (profile) {
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleError) {
+        console.error('Error fetching user role:', roleError);
+      }
+
       const userData: User = {
         id: profile.id,
         name: profile.name || '',
@@ -49,11 +67,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (userRole) {
         // Fetch the role details from roles table
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleDataError } = await supabase
           .from('roles')
           .select('*')
           .eq('role_type', userRole.role)
           .single();
+
+        if (roleDataError) {
+          console.error('Error fetching role data:', roleDataError);
+        }
 
         if (roleData) {
           setRole({
@@ -68,6 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      // Set minimal user data so app doesn't hang
+      setUser({
+        id: userId,
+        name: userEmail?.split('@')[0] || 'User',
+        email: userEmail || '',
+        role: 'viewer',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
     }
   };
 
@@ -85,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         
         if (session?.user) {
-          await fetchUserProfile(session.user.id);
+          await fetchUserProfile(session.user.id, session.user.email);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -108,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           // Don't set loading here as it would cause flash
-          await fetchUserProfile(session.user.id);
+          await fetchUserProfile(session.user.id, session.user.email);
         } else {
           setUser(null);
           setRole(null);
@@ -134,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        await fetchUserProfile(data.user.id);
+        await fetchUserProfile(data.user.id, data.user.email);
       }
 
       return {};
@@ -170,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: 'viewer',
         });
 
-        await fetchUserProfile(data.user.id);
+        await fetchUserProfile(data.user.id, data.user.email);
       }
 
       return {};
