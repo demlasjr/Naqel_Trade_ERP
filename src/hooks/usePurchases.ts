@@ -262,9 +262,10 @@ export function usePurchases() {
               .single();
 
             if (cashAccount) {
+              const newBalance = Math.max(0, (cashAccount.balance || 0) - purchaseData.total);
               await supabase
                 .from("accounts")
-                .update({ balance: Math.max(0, (cashAccount.balance || 0) - purchaseData.total) })
+                .update({ balance: newBalance })
                 .eq("id", cashAccountId);
             }
 
@@ -276,9 +277,10 @@ export function usePurchases() {
               .single();
 
             if (expenseAccount) {
+              const newBalance = (expenseAccount.balance || 0) + purchaseData.total;
               await supabase
                 .from("accounts")
-                .update({ balance: (expenseAccount.balance || 0) + purchaseData.total })
+                .update({ balance: newBalance })
                 .eq("id", expenseAccountId);
             }
           }
@@ -308,11 +310,14 @@ export function usePurchases() {
         console.error("Error creating activity log:", logError);
       }
 
-      // Invalidate queries
+      // Invalidate and refetch queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+      // Force refetch to ensure balances are updated
+      queryClient.refetchQueries({ queryKey: ["accounts"] });
 
       return purchaseOrder;
     },

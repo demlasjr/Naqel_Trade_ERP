@@ -36,34 +36,53 @@ export default function GeneralLedger() {
     if (!selectedAccount) return [];
     
     return transactions
-      .filter(t => 
-        t.accountFrom === selectedAccount.name || 
-        t.accountTo === selectedAccount.name
-      )
+      .filter(t => {
+        // Match by account ID (most reliable) or by account name
+        const matchesFrom = t.accountFromId === selectedAccount.id || t.accountFrom === selectedAccount.name;
+        const matchesTo = t.accountToId === selectedAccount.id || t.accountTo === selectedAccount.name;
+        return matchesFrom || matchesTo;
+      })
       .filter(t =>
         t.description.toLowerCase().includes(search.toLowerCase()) ||
         (t.reference?.toLowerCase().includes(search.toLowerCase()) ?? false)
       )
-      .map((t, index, arr) => {
-        const isDebit = t.accountTo === selectedAccount.name;
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Sort by date ascending
+      .reduce((acc, t) => {
+        // Determine if this transaction affects the selected account as debit or credit
+        const isDebit = t.accountToId === selectedAccount.id || t.accountTo === selectedAccount.name;
+        const isCredit = t.accountFromId === selectedAccount.id || t.accountFrom === selectedAccount.name;
+        
         const debit = isDebit ? t.amount : 0;
-        const credit = !isDebit ? t.amount : 0;
+        const credit = isCredit ? t.amount : 0;
         
-        // Calculate running balance (simplified)
-        const previousBalance = index > 0 ? 
-          arr.slice(0, index).reduce((sum, prev) => {
-            const prevDebit = prev.accountTo === selectedAccount.name ? prev.amount : 0;
-            const prevCredit = prev.accountFrom === selectedAccount.name ? prev.amount : 0;
-            return sum + prevDebit - prevCredit;
-          }, selectedAccount.balance) : selectedAccount.balance;
+        // Calculate running balance starting from account's current balance
+        // For assets: debit increases, credit decreases
+        // For liabilities/equity: credit increases, debit decreases
+        // For revenue: credit increases, debit decreases
+        // For expenses: debit increases, credit decreases
+        const accountType = selectedAccount.type;
+        let balanceChange = 0;
         
-        return {
+        if (accountType === 'Assets' || accountType === 'Expenses') {
+          balanceChange = debit - credit;
+        } else {
+          balanceChange = credit - debit;
+        }
+        
+        // Calculate running balance
+        const previousBalance = acc.length > 0 
+          ? acc[acc.length - 1].balance 
+          : selectedAccount.balance;
+        
+        acc.push({
           ...t,
           debit,
           credit,
-          balance: previousBalance + debit - credit,
-        };
-      });
+          balance: previousBalance + balanceChange,
+        });
+        
+        return acc;
+      }, [] as Array<Transaction & { debit: number; credit: number; balance: number }>);
   }, [selectedAccount, transactions, search]);
 
   if (isLoadingAccounts || isLoadingTransactions) {

@@ -17,6 +17,8 @@ export interface Transaction {
   description: string;
   accountFrom?: string;
   accountTo?: string;
+  accountFromId?: string;
+  accountToId?: string;
   amount: number;
   status: TransactionStatus;
   reference?: string;

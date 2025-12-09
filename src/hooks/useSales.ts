@@ -146,6 +146,22 @@ export function useSales() {
 
       if (orderError) throw orderError;
 
+      // Update customer balance (increase by unpaid amount)
+      if (orderData.customerId && orderData.balance && orderData.balance > 0) {
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("balance")
+          .eq("id", orderData.customerId)
+          .single();
+
+        if (customer) {
+          await supabase
+            .from("customers")
+            .update({ balance: (customer.balance || 0) + orderData.balance })
+            .eq("id", orderData.customerId);
+        }
+      }
+
       // Insert line items and update inventory
       if (orderData.lineItems && orderData.lineItems.length > 0) {
         const lineItemsData = orderData.lineItems.map((item) => ({
@@ -297,9 +313,10 @@ export function useSales() {
               .single();
 
             if (cashAccount) {
+              const newBalance = (cashAccount.balance || 0) + orderData.total;
               await supabase
                 .from("accounts")
-                .update({ balance: (cashAccount.balance || 0) + orderData.total })
+                .update({ balance: newBalance })
                 .eq("id", cashAccountId);
             }
 
@@ -311,9 +328,10 @@ export function useSales() {
               .single();
 
             if (revenueAccount) {
+              const newBalance = (revenueAccount.balance || 0) + orderData.total;
               await supabase
                 .from("accounts")
-                .update({ balance: (revenueAccount.balance || 0) + orderData.total })
+                .update({ balance: newBalance })
                 .eq("id", revenueAccountId);
             }
           }
@@ -343,11 +361,15 @@ export function useSales() {
         console.error("Error creating activity log:", logError);
       }
 
-      // Invalidate queries
+      // Invalidate and refetch queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      // Force refetch to ensure balances are updated
+      queryClient.refetchQueries({ queryKey: ["accounts"] });
+      queryClient.refetchQueries({ queryKey: ["customers"] });
 
       toast.success("Sales order created successfully");
       await fetchSales();

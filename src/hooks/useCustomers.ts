@@ -1,21 +1,38 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Customer } from "@/types/customer";
 import { toast } from "sonner";
 
 export function useCustomers() {
   const queryClient = useQueryClient();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
 
+  // Subscribe to realtime changes
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    const channel = supabase
+      .channel('customers_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customers'
+        },
+        (payload) => {
+          console.log('Customer change detected:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }
+      )
+      .subscribe();
 
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const customersQuery = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
         .select("*")
@@ -23,7 +40,7 @@ export function useCustomers() {
 
       if (error) throw error;
 
-      const mappedCustomers: Customer[] = (data || []).map((c) => ({
+      return (data || []).map((c) => ({
         id: c.id,
         name: c.name,
         email: c.email || "",
@@ -36,15 +53,11 @@ export function useCustomers() {
         balance: c.balance || 0,
         status: c.status as "active" | "inactive",
         createdAt: c.created_at,
-      }));
-
-      setCustomers(mappedCustomers);
-    } catch (error: any) {
-      console.error("Error fetching customers:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      })) as Customer[];
+    },
+    staleTime: 0, // Always consider data stale to ensure fresh updates
+    refetchOnWindowFocus: true,
+  });
 
   const generateCustomerCode = () => {
     const prefix = "CUST";
@@ -79,7 +92,8 @@ export function useCustomers() {
       return data;
     },
     onSuccess: () => {
-      fetchCustomers();
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.refetchQueries({ queryKey: ["customers"] });
       toast.success("Customer created successfully");
     },
     onError: (error: Error) => {
@@ -88,9 +102,10 @@ export function useCustomers() {
   });
 
   return {
-    customers,
-    loading,
-    refetch: fetchCustomers,
+    customers: customersQuery.data ?? [],
+    loading: customersQuery.isLoading,
+    error: customersQuery.error,
+    refetch: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
     createCustomer: createCustomerMutation.mutateAsync,
   };
 }
