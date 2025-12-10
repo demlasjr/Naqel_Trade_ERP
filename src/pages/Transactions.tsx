@@ -200,10 +200,9 @@ export default function Transactions() {
         </div>
       </div>
 
-      <Card className="p-6">
-        <CollapsibleFilters title="Search & Filters">
-          <TransactionFilters filters={filters} onFiltersChange={setFilters} />
-        </CollapsibleFilters>
+      <CollapsibleFilters title="Search & Filters">
+        <TransactionFilters filters={filters} onFiltersChange={setFilters} />
+      </CollapsibleFilters>
 
       {selectedIds.length > 0 && (
         <TransactionBulkActionsBar
