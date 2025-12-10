@@ -34,6 +34,14 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
 
   return (
     <div className="space-y-4">
+      {hasActiveFilters && (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={handleReset}>
+            <X className="h-4 w-4 mr-1" />
+            Clear All
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <Label htmlFor="search" className="text-sm mb-2 block">Search</Label>
@@ -58,8 +66,9 @@ export function TransactionFilters({ filters, onFiltersChange }: TransactionFilt
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="posted">Posted</SelectItem>
+              <SelectItem value="reconciled">Reconciled</SelectItem>
+              <SelectItem value="void">Void</SelectItem>
             </SelectContent>
           </Select>
         </div>

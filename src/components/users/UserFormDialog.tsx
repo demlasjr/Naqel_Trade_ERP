@@ -36,6 +36,16 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
   const canAssignAdmin = currentUser?.role === 'admin';
   // Check if editing self
   const isEditingSelf = user?.id === currentUser?.id;
+  // Check if the user being edited is already an admin
+  const isEditingAdmin = user?.role === 'admin';
+  
+  // Show admin option if:
+  // 1. Current user is admin AND not editing self, OR
+  // 2. Editing an existing admin user (to allow viewing/keeping the role)
+  const showAdminOption = (canAssignAdmin && !isEditingSelf) || isEditingAdmin;
+  
+  // Debug log
+  console.log('[UserFormDialog] currentUser role:', currentUser?.role, 'canAssignAdmin:', canAssignAdmin, 'isEditingSelf:', isEditingSelf, 'isEditingAdmin:', isEditingAdmin);
 
   useEffect(() => {
     if (open) {
@@ -154,8 +164,9 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
                   toast.error("Only administrators can assign the admin role");
                   return;
                 }
-                // Prevent self-promotion to admin
-                if (value === 'admin' && isEditingSelf) {
+                // Prevent self-promotion to admin (only if user is NOT already admin)
+                // Allow admins to keep their admin role when editing their own profile
+                if (value === 'admin' && isEditingSelf && !isEditingAdmin) {
                   toast.error("You cannot promote yourself to administrator");
                   return;
                 }
@@ -166,9 +177,9 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {canAssignAdmin && (
-                  <SelectItem value="admin" disabled={isEditingSelf}>
-                    Administrator {isEditingSelf && "(Cannot assign to yourself)"}
+                {showAdminOption && (
+                  <SelectItem value="admin">
+                    Administrator
                   </SelectItem>
                 )}
                 <SelectItem value="manager">Manager</SelectItem>
@@ -184,7 +195,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
                 Only administrators can assign the admin role
               </p>
             )}
-            {isEditingSelf && formData.role === 'admin' && (
+            {isEditingSelf && formData.role === 'admin' && !isEditingAdmin && (
               <p className="text-sm text-destructive">
                 You cannot promote yourself to administrator
               </p>

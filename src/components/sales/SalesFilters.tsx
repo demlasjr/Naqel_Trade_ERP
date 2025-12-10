@@ -35,16 +35,15 @@ export function SalesFilters({ filters, onFilterChange, customers }: SalesFilter
     filters.maxAmount;
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-card">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Filters</h3>
-        {hasActiveFilters && (
+    <div className="space-y-4">
+      {hasActiveFilters && (
+        <div className="flex justify-end">
           <Button variant="ghost" size="sm" onClick={handleReset}>
             <X className="h-4 w-4 mr-1" />
-            Clear
+            Clear All
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">

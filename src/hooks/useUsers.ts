@@ -103,8 +103,20 @@ export function useUsers() {
         throw new Error("Only administrators can assign the admin role");
       }
 
+      // Get current role before updating (needed for self-promotion check)
+      let currentRole: AppRole | null = null;
+      if (data.role && userId === currentUser?.id) {
+        const { data: existingRole } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .maybeSingle();
+        currentRole = existingRole?.role as AppRole | null;
+      }
+
       // Security check: Users cannot promote themselves to admin
-      if (data.role === 'admin' && userId === currentUser?.id) {
+      // But allow admins to keep their admin role when editing their own profile
+      if (data.role === 'admin' && userId === currentUser?.id && currentRole !== 'admin') {
         throw new Error("You cannot promote yourself to administrator");
       }
 

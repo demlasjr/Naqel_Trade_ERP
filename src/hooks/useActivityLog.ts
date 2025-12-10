@@ -9,11 +9,12 @@ export function useActivityLogs() {
     queryKey: ["activityLogs"],
     queryFn: async () => {
       // Fetch logs with user info
+      // Use column name instead of constraint name for more robust relationship query
       const { data, error } = await supabase
         .from("activity_logs")
         .select(`
           *,
-          user:profiles!activity_logs_user_id_fkey(id, name, email)
+          user:profiles!user_id(id, name, email)
         `)
         .order("created_at", { ascending: false })
         .limit(200); // Increased limit
@@ -59,7 +60,9 @@ export function useActivityLogs() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.warn("Cannot create activity log: User not authenticated");
-        return; // Don't throw, just skip logging
+        // Return a resolved promise with null to complete the mutation lifecycle
+        // This prevents the mutation from hanging while not breaking the app
+        return null;
       }
 
       const insertData: any = {
@@ -80,15 +83,18 @@ export function useActivityLogs() {
         insertData.metadata = logData.metadata;
       }
 
-      const { error } = await supabase.from("activity_logs").insert(insertData);
+      const { data, error } = await supabase.from("activity_logs").insert(insertData).select().single();
 
       if (error) {
         console.error("Error creating activity log:", error);
-        // Don't throw - activity logging should not break the app
-      } else {
-        // Invalidate queries on success
-        queryClient.invalidateQueries({ queryKey: ["activityLogs"] });
+        // Return null instead of throwing - activity logging should not break the app
+        // But the mutation promise is properly resolved
+        return null;
       }
+
+      // Invalidate queries on success
+      queryClient.invalidateQueries({ queryKey: ["activityLogs"] });
+      return data;
     },
   });
 

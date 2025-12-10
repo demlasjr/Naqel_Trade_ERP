@@ -195,8 +195,9 @@ export function TransactionFormDialog({ transaction, open, onOpenChange, onSave,
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="posted">Posted</SelectItem>
+                  <SelectItem value="reconciled">Reconciled</SelectItem>
+                  <SelectItem value="void">Void</SelectItem>
                 </SelectContent>
               </Select>
             </div>

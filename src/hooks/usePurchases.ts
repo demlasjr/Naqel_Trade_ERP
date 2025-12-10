@@ -189,7 +189,7 @@ export function usePurchases() {
             .in("code", ["1110", "1010", "1000"])
             .eq("account_type", "asset")
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (accountByCode) {
             cashAccountId = accountByCode.id;
@@ -214,7 +214,7 @@ export function usePurchases() {
             .select("id")
             .eq("account_type", "expense")
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (anyExpense) {
             expenseAccountId = anyExpense.id;
@@ -226,7 +226,7 @@ export function usePurchases() {
               .in("code", ["5000", "5100", "5200", "6000"])
               .eq("account_type", "expense")
               .limit(1)
-              .single();
+              .maybeSingle();
 
             if (expenseByCode) {
               expenseAccountId = expenseByCode.id;
@@ -262,7 +262,9 @@ export function usePurchases() {
               .single();
 
             if (cashAccount) {
-              const newBalance = Math.max(0, (cashAccount.balance || 0) - purchaseData.total);
+              // Allow negative balances for consistency with sales (cash can go negative in overdraft scenarios)
+              // Both sales and purchases should follow the same balance calculation rules
+              const newBalance = (cashAccount.balance || 0) - purchaseData.total;
               const { error: updateCashError } = await supabase
                 .from("accounts")
                 .update({ balance: newBalance, updated_at: new Date().toISOString() })
@@ -273,7 +275,9 @@ export function usePurchases() {
               }
             }
 
-            // Update expense account balance (increase for expense)
+            // Update expense account balance
+            // For Expense accounts: balance increases with debits (account_to = debit)
+            // Since expense is account_to, it's debited, so balance should increase
             const { data: expenseAccount } = await supabase
               .from("accounts")
               .select("balance")
@@ -281,6 +285,8 @@ export function usePurchases() {
               .single();
 
             if (expenseAccount) {
+              // Expense accounts increase with debits (when account_to)
+              // The transaction has account_to = expense, so it's a debit to expense
               const newBalance = (expenseAccount.balance || 0) + purchaseData.total;
               const { error: updateExpenseError } = await supabase
                 .from("accounts")

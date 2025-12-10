@@ -32,6 +32,14 @@ export function ProductFilters({ filters, onFiltersChange }: ProductFiltersProps
 
   return (
     <div className="space-y-4">
+      {hasActiveFilters && (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={handleReset}>
+            <X className="h-4 w-4 mr-1" />
+            Clear All
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <Label htmlFor="search" className="text-sm mb-2 block">Search</Label>

@@ -12,6 +12,7 @@ import { SalesFormDialog } from "@/components/sales/SalesFormDialog";
 import { SalesBulkActionsBar } from "@/components/sales/SalesBulkActionsBar";
 import { SalesAnalytics } from "@/components/sales/SalesAnalytics";
 import { CustomerFormDialog } from "@/components/sales/CustomerFormDialog";
+import { CollapsibleFilters } from "@/components/common/CollapsibleFilters";
 import { SalesOrder, SalesFilters as SalesFiltersType } from "@/types/sale";
 import { useSales } from "@/hooks/useSales";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -19,6 +20,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { format } from "date-fns";
 import { Customer } from "@/types/customer";
+import { formatAmount } from "@/lib/formatters";
 
 const statusColors = {
   draft: "bg-gray-500",
@@ -225,7 +227,9 @@ export default function Sales() {
 
           <SalesAnalytics sales={filteredSales} />
 
-          <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
+          <CollapsibleFilters title="Search & Filters">
+            <SalesFilters filters={filters} onFilterChange={setFilters} customers={customers} />
+          </CollapsibleFilters>
 
           <Card>
             <div className="overflow-x-auto">
@@ -275,9 +279,9 @@ export default function Sales() {
                           {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right font-medium">MRU {sale.total.toFixed(2)}</td>
-                      <td className="p-4 text-right text-green-600">MRU {sale.paidAmount.toFixed(2)}</td>
-                      <td className="p-4 text-right text-orange-600">MRU {sale.balance.toFixed(2)}</td>
+                      <td className="p-4 text-right font-medium">MRU {formatAmount(sale.total)}</td>
+                      <td className="p-4 text-right text-green-600">MRU {formatAmount(sale.paidAmount)}</td>
+                      <td className="p-4 text-right text-orange-600">MRU {formatAmount(sale.balance)}</td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
                           <Button variant="ghost" size="icon" onClick={() => handleViewDetails(sale)}>
@@ -361,7 +365,7 @@ export default function Sales() {
                             {customer.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">MRU {customer.balance.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">MRU {formatAmount(customer.balance)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => handleEditCustomer(customer)}>
                             <Pencil className="h-4 w-4" />

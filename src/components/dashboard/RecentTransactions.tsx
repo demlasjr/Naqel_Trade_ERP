@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { formatAmount } from "@/lib/formatters";
 
 interface Transaction {
   id: string;
@@ -121,8 +122,8 @@ export function RecentTransactions() {
                     transaction.amount > 0 ? "text-success" : "text-destructive"
                   }`}
                 >
-                  {transaction.amount > 0 ? "+" : ""}
-                  {Math.abs(transaction.amount).toLocaleString()} MRU
+                  {transaction.amount > 0 ? "+" : "-"}
+                  {formatAmount(Math.abs(transaction.amount))} MRU
                 </p>
                 <Badge
                   variant={

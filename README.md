@@ -95,14 +95,15 @@ A comprehensive Enterprise Resource Planning (ERP) system built with React, Type
    
    Open your browser and navigate to `http://localhost:5173`
 
-7. **Login with default admin credentials**
+7. **Create your admin account**
    
-   ```
-   Email: admin@admin.com
-   Password: Admin1234
-   ```
+   The **first user to sign up** will automatically become the administrator.
    
-   ⚠️ **Important**: Change the admin password after your first login!
+   - Click "Sign up" on the login page
+   - Enter your email and password
+   - You will be assigned the 'admin' role automatically
+   
+   All subsequent users will be assigned the 'viewer' role by default.
 
 ## Database Setup
 
@@ -116,17 +117,15 @@ The `database.sql` file contains everything needed for a fresh database installa
 - **Realtime**: Realtime subscriptions enabled for key tables
 - **Default Admin User**: Automatically created for initial access
 
-### Default Admin Credentials
+### First User = Admin
 
-When you run `database.sql`, a default admin user is automatically created:
+When you run `database.sql`, no default user is created. Instead:
 
-| Field | Value |
-|-------|-------|
-| Email | `admin@admin.com` |
-| Password | `Admin1234` |
-| Role | `admin` |
+- **The first user to sign up** becomes the administrator automatically
+- All subsequent users are assigned the 'viewer' role by default
+- Admins can change user roles from the User Management page
 
-⚠️ **Security Warning**: Change this password immediately after your first login!
+This approach is more secure than having default credentials.
 
 ### Important Notes
 

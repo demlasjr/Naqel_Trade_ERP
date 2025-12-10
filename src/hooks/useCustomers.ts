@@ -18,9 +18,11 @@ export function useCustomers() {
           schema: 'public',
           table: 'customers'
         },
-        (payload) => {
+        async (payload) => {
           console.log('Customer change detected:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["customers"] });
+          // Invalidate and immediately refetch for real-time updates
+          await queryClient.invalidateQueries({ queryKey: ["customers"] });
+          await queryClient.refetchQueries({ queryKey: ["customers"] });
         }
       )
       .subscribe();
@@ -105,7 +107,10 @@ export function useCustomers() {
     customers: customersQuery.data ?? [],
     loading: customersQuery.isLoading,
     error: customersQuery.error,
-    refetch: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
+    refetch: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["customers"] });
+      return queryClient.refetchQueries({ queryKey: ["customers"] });
+    },
     createCustomer: createCustomerMutation.mutateAsync,
   };
 }

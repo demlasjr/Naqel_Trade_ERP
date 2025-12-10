@@ -9,6 +9,7 @@ import { TransactionFilters } from "@/components/transactions/TransactionFilters
 import { TransactionDetailDialog } from "@/components/transactions/TransactionDetailDialog";
 import { TransactionFormDialog } from "@/components/transactions/TransactionFormDialog";
 import { TransactionBulkActionsBar } from "@/components/transactions/TransactionBulkActionsBar";
+import { CollapsibleFilters } from "@/components/common/CollapsibleFilters";
 import { Transaction, TransactionFilters as Filters } from "@/types/transaction";
 import { format } from "date-fns";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -200,8 +201,9 @@ export default function Transactions() {
       </div>
 
       <Card className="p-6">
-        <TransactionFilters filters={filters} onFiltersChange={setFilters} />
-      </Card>
+        <CollapsibleFilters title="Search & Filters">
+          <TransactionFilters filters={filters} onFiltersChange={setFilters} />
+        </CollapsibleFilters>
 
       {selectedIds.length > 0 && (
         <TransactionBulkActionsBar

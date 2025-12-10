@@ -53,6 +53,20 @@ export default function GeneralLedger() {
         // Match by account ID (most reliable) or by account name
         const matchesFrom = t.accountFromId === selectedAccount.id || t.accountFrom === selectedAccount.name;
         const matchesTo = t.accountToId === selectedAccount.id || t.accountTo === selectedAccount.name;
+        
+        // Filter out invalid transactions where the same account appears in both fields
+        // This violates double-entry accounting principles and should not be displayed
+        if (matchesFrom && matchesTo) {
+          console.error('Invalid transaction filtered out: same account in both from and to fields:', {
+            transactionId: t.id,
+            accountId: selectedAccount.id,
+            accountName: selectedAccount.name,
+            amount: t.amount,
+            description: t.description
+          });
+          return false; // Exclude this transaction from the ledger
+        }
+        
         return matchesFrom || matchesTo;
       })
       .filter(t =>
@@ -62,8 +76,54 @@ export default function GeneralLedger() {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Sort by date ascending
       .reduce((acc, t) => {
         // Determine if this transaction affects the selected account as debit or credit
-        const isDebit = t.accountToId === selectedAccount.id || t.accountTo === selectedAccount.name;
-        const isCredit = t.accountFromId === selectedAccount.id || t.accountFrom === selectedAccount.name;
+        // A transaction can only be EITHER debit OR credit for a given account, not both
+        // (Invalid transactions with same account in both fields are already filtered out above)
+        const matchesTo = t.accountToId === selectedAccount.id || t.accountTo === selectedAccount.name;
+        const matchesFrom = t.accountFromId === selectedAccount.id || t.accountFrom === selectedAccount.name;
+        
+        // Debit/credit classification depends on account type:
+        // - Assets/Expenses: debit increases (matchesTo), credit decreases (matchesFrom)
+        // - Liabilities/Equity/Revenue: credit increases (matchesTo), debit decreases (matchesFrom)
+        const accountType = selectedAccount.type;
+        const isAssetOrExpense = accountType === 'Assets' || accountType === 'Expenses';
+        const isLiabilityEquityOrRevenue = accountType === 'Liabilities' || accountType === 'Equity' || accountType === 'Revenue';
+        
+        let isDebit = false;
+        let isCredit = false;
+        
+        // Only process transactions that actually affect this account
+        // (matchesTo and matchesFrom are mutually exclusive due to filtering above)
+        if (matchesTo && !matchesFrom) {
+          // Account is the destination (to)
+          if (isAssetOrExpense) {
+            isDebit = true; // Assets/Expenses increase with debits
+          } else if (isLiabilityEquityOrRevenue) {
+            isCredit = true; // Liabilities/Equity/Revenue increase with credits
+          } else {
+            // Unknown account type - default to debit for safety
+            console.warn(`Unknown account type "${accountType}" for account ${selectedAccount.name}, defaulting to debit`);
+            isDebit = true;
+          }
+        } else if (matchesFrom && !matchesTo) {
+          // Account is the source (from)
+          if (isAssetOrExpense) {
+            isCredit = true; // Assets/Expenses decrease with credits
+          } else if (isLiabilityEquityOrRevenue) {
+            isDebit = true; // Liabilities/Equity/Revenue decrease with debits
+          } else {
+            // Unknown account type - default to credit for safety
+            console.warn(`Unknown account type "${accountType}" for account ${selectedAccount.name}, defaulting to credit`);
+            isCredit = true;
+          }
+        } else {
+          // This should never happen due to filtering above, but log if it does
+          console.warn('Transaction does not match account in either from or to field:', {
+            transactionId: t.id,
+            accountId: selectedAccount.id,
+            accountFromId: t.accountFromId,
+            accountToId: t.accountToId,
+          });
+        }
         
         const debit = isDebit ? t.amount : 0;
         const credit = isCredit ? t.amount : 0;
@@ -73,7 +133,7 @@ export default function GeneralLedger() {
         // For liabilities/equity: credit increases, debit decreases
         // For revenue: credit increases, debit decreases
         // For expenses: debit increases, credit decreases
-        const accountType = selectedAccount.type;
+        // Reuse accountType variable declared above (line 87)
         let balanceChange = 0;
         
         if (accountType === 'Assets' || accountType === 'Expenses') {

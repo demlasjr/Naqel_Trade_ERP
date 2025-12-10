@@ -5,6 +5,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { useAccounts } from "@/hooks/useAccounts";
 import { useTransactions } from "@/hooks/useTransactions";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
+import { formatCurrency, formatNumber } from "@/lib/formatters";
 
 export default function AccountingAnalytics() {
   const { accounts, isLoading: isLoadingAccounts, error: accountsError, refetch: refetchAccounts } = useAccounts();
@@ -139,7 +140,7 @@ export default function AccountingAnalytics() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">MRU {analytics.netProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(analytics.netProfit)}</div>
             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
               {analytics.netProfit >= 0 ? (
                 <TrendingUp className="h-4 w-4 text-green-600" />
@@ -159,7 +160,7 @@ export default function AccountingAnalytics() {
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">MRU {analytics.totalAssets.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(analytics.totalAssets)}</div>
             <p className="text-sm text-muted-foreground mt-1">
               Current + Fixed Assets
             </p>

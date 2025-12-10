@@ -59,7 +59,11 @@ export default function JournalEntries() {
   });
 
   const handleSaveEntry = async () => {
-    if (!newEntry.date || !newEntry.description || !newEntry.amount) return;
+    // Validate all required fields including accounts for double-entry bookkeeping
+    if (!newEntry.date || !newEntry.description || !newEntry.amount || !newEntry.accountFrom || !newEntry.accountTo) {
+      console.warn('Missing required fields for journal entry');
+      return;
+    }
     
     await createTransaction({
       date: newEntry.date,
@@ -68,6 +72,8 @@ export default function JournalEntries() {
       reference: newEntry.reference || `JE-${Date.now()}`,
       amount: parseFloat(newEntry.amount),
       status: 'pending',
+      accountFrom: newEntry.accountFrom,
+      accountTo: newEntry.accountTo,
     });
     
     setNewEntry({

@@ -129,20 +129,110 @@ export function useTransactions() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // For now, we'll need to resolve account names to IDs
-      // This is a simplified version - you may want to pass account IDs instead
+      // Build insert object with all transaction fields
+      const insertData: any = {
+        date: transactionData.date,
+        type: transactionData.type,
+        description: transactionData.description,
+        amount: transactionData.amount,
+        reference: transactionData.reference,
+        notes: transactionData.notes,
+        status: transactionData.status || "pending",
+        created_by: user.id,
+      };
+
+      // Add account IDs if provided (for double-entry bookkeeping)
+      // Both accounts are required for proper double-entry bookkeeping
+      let accountFromId: string | null = null;
+      let accountToId: string | null = null;
+
+      // Resolve account_from
+      if (transactionData.accountFromId) {
+        accountFromId = transactionData.accountFromId;
+      } else if (transactionData.accountFrom) {
+        // If account name is provided, try to resolve it to an ID
+        try {
+          const { data: fromAccount, error: fromError } = await supabase
+            .from("accounts")
+            .select("id")
+            .eq("name", transactionData.accountFrom)
+            .maybeSingle();
+          
+          if (fromError) {
+            throw new Error(`Failed to lookup account "${transactionData.accountFrom}": ${fromError.message}`);
+          }
+          
+          if (!fromAccount) {
+            throw new Error(`Account "${transactionData.accountFrom}" not found`);
+          }
+          
+          accountFromId = fromAccount.id;
+        } catch (error) {
+          // Re-throw with more context
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error(`Failed to resolve account "${transactionData.accountFrom}"`);
+        }
+      }
+
+      // Resolve account_to
+      if (transactionData.accountToId) {
+        accountToId = transactionData.accountToId;
+      } else if (transactionData.accountTo) {
+        // If account name is provided, try to resolve it to an ID
+        try {
+          const { data: toAccount, error: toError } = await supabase
+            .from("accounts")
+            .select("id")
+            .eq("name", transactionData.accountTo)
+            .maybeSingle();
+          
+          if (toError) {
+            throw new Error(`Failed to lookup account "${transactionData.accountTo}": ${toError.message}`);
+          }
+          
+          if (!toAccount) {
+            throw new Error(`Account "${transactionData.accountTo}" not found`);
+          }
+          
+          accountToId = toAccount.id;
+        } catch (error) {
+          // Re-throw with more context
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error(`Failed to resolve account "${transactionData.accountTo}"`);
+        }
+      }
+
+      // Validate that both accounts are present for double-entry bookkeeping
+      // (Some transaction types might not require both accounts, but most do)
+      if (accountFromId && accountToId) {
+        // Prevent creating transactions with the same account in both fields
+        if (accountFromId === accountToId) {
+          throw new Error("Cannot create transaction with the same account in both 'from' and 'to' fields");
+        }
+        insertData.account_from = accountFromId;
+        insertData.account_to = accountToId;
+      } else if (accountFromId || accountToId) {
+        // If only one account is provided, warn but allow (some transaction types might be single-entry)
+        if (accountFromId) {
+          insertData.account_from = accountFromId;
+        }
+        if (accountToId) {
+          insertData.account_to = accountToId;
+        }
+        console.warn("Transaction created with only one account (not double-entry)", {
+          accountFromId,
+          accountToId,
+          type: transactionData.type,
+        });
+      }
+
       const { data, error } = await supabase
         .from("transactions")
-        .insert({
-          date: transactionData.date,
-          type: transactionData.type,
-          description: transactionData.description,
-          amount: transactionData.amount,
-          reference: transactionData.reference,
-          notes: transactionData.notes,
-          status: transactionData.status || "pending",
-          created_by: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 

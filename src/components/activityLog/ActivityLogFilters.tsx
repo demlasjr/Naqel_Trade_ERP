@@ -57,10 +57,9 @@ export function ActivityLogFilters({ onFilterChange }: ActivityLogFiltersProps) 
     filters.userId !== "all";
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-card">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Filters</h3>
-        {hasActiveFilters && (
+    <div className="space-y-4">
+      {hasActiveFilters && (
+        <div className="flex justify-end">
           <Button
             variant="ghost"
             size="sm"
@@ -70,8 +69,8 @@ export function ActivityLogFilters({ onFilterChange }: ActivityLogFiltersProps) 
             <X className="h-4 w-4 mr-1" />
             Clear All
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {/* Search */}
