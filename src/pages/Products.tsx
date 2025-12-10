@@ -9,6 +9,7 @@ import { ProductFilters } from "@/components/products/ProductFilters";
 import { ProductDetailDialog } from "@/components/products/ProductDetailDialog";
 import { ProductFormDialog } from "@/components/products/ProductFormDialog";
 import { ProductBulkActionsBar } from "@/components/products/ProductBulkActionsBar";
+import { CollapsibleFilters } from "@/components/common/CollapsibleFilters";
 import { Product, ProductFilters as Filters, ProductViewMode } from "@/types/product";
 import { useProducts } from "@/hooks/useProducts";
 import { useVendors } from "@/hooks/useVendors";
@@ -258,9 +259,9 @@ export default function Products() {
         </div>
       )}
 
-      <Card className="p-6">
+      <CollapsibleFilters title="Search & Filters">
         <ProductFilters filters={filters} onFiltersChange={setFilters} />
-      </Card>
+      </CollapsibleFilters>
 
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">

@@ -15,11 +15,13 @@ export function TransactionDetailDialog({ transaction, open, onOpenChange }: Tra
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "completed":
+      case "posted":
+        return "default";
+      case "reconciled":
         return "default";
       case "pending":
         return "secondary";
-      case "cancelled":
+      case "void":
         return "destructive";
       default:
         return "outline";

@@ -6,6 +6,7 @@ import { ActivityLogTable } from "@/components/activityLog/ActivityLogTable";
 import { useActivityLogs } from "@/hooks/useActivityLog";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
 import { Badge } from "@/components/ui/badge";
+import { CollapsibleFilters } from "@/components/common/CollapsibleFilters";
 
 export default function ActivityLog() {
   const { activityLogs, isLoading } = useActivityLogs();
@@ -123,7 +124,9 @@ export default function ActivityLog() {
       </div>
 
       {/* Filters */}
-      <ActivityLogFilters onFilterChange={setFilters} />
+      <CollapsibleFilters title="Search & Filters">
+        <ActivityLogFilters onFilterChange={setFilters} />
+      </CollapsibleFilters>
 
       {/* Results Count */}
       <div className="flex items-center justify-between">

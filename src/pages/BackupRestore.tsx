@@ -111,6 +111,24 @@ export default function BackupRestore() {
     }
   };
 
+  // Foreign key fields to remove for each table (these reference other tables that may not exist)
+  const foreignKeyFields: Record<string, string[]> = {
+    customers: ['created_by'],
+    vendors: ['created_by'],
+    products: ['created_by', 'supplier_id', 'category_id'],
+    product_categories: ['created_by', 'parent_id'],
+    sales_orders: ['customer_id', 'created_by'],
+    sales_line_items: ['sale_id', 'product_id'],
+    purchase_orders: ['vendor_id', 'created_by'],
+    purchase_line_items: ['purchase_order_id', 'product_id'],
+    transactions: ['created_by', 'account_from', 'account_to'],
+    stock_movements: ['product_id', 'created_by'],
+    employees: ['department_id', 'created_by'],
+    payroll: ['employee_id', 'created_by'],
+    activity_logs: ['user_id'],
+    accounts: ['parent_id', 'created_by'],
+  };
+
   const handleRestore = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -140,7 +158,7 @@ export default function BackupRestore() {
         `Are you sure you want to restore this backup?\n\n` +
         `Backup date: ${backup.created_at ? new Date(backup.created_at).toLocaleString() : 'Unknown'}\n` +
         `Created by: ${backup.created_by_email || 'Unknown'}\n\n` +
-        `WARNING: This action will delete all current data and replace it with the backup data.`
+        `WARNING: This will restore data without relationships (foreign keys will be removed to avoid conflicts).`
       );
 
       if (!confirmed) {
@@ -151,7 +169,7 @@ export default function BackupRestore() {
       let totalRestored = 0;
       const errors: string[] = [];
 
-      // Restore data table by table (in order to handle dependencies correctly)
+      // Restore data table by table
       for (const table of tables) {
         if (!backup.data[table] || !Array.isArray(backup.data[table])) {
           continue;
@@ -161,47 +179,45 @@ export default function BackupRestore() {
         if (tableData.length === 0) continue;
 
         try {
-          // Use upsert to handle existing records (replace if exists, insert if new)
-          // For large datasets, we need to batch insert
-          const batchSize = 100;
+          const batchSize = 50; // Smaller batch size for reliability
+          
           for (let i = 0; i < tableData.length; i += batchSize) {
             const batch = tableData.slice(i, i + batchSize);
             
-            // Clean the batch - keep IDs for proper relationship maintenance
+            // Clean the batch - remove foreign keys and timestamps
             const cleanBatch = batch.map((record: any) => {
-              // Keep id for relationships, but let database handle timestamps
-              const { created_at, updated_at, ...rest } = record;
-              return {
-                ...rest,
-                // Preserve created_at if it exists, otherwise let DB set it
-                ...(created_at ? { created_at } : {}),
-              };
+              const { id, created_at, updated_at, ...rest } = record;
+              
+              // Remove foreign key fields for this table
+              const fkFields = foreignKeyFields[table] || [];
+              const cleanRecord: any = {};
+              
+              for (const [key, value] of Object.entries(rest)) {
+                // Skip foreign key fields
+                if (!fkFields.includes(key)) {
+                  cleanRecord[key] = value;
+                }
+              }
+              
+              return cleanRecord;
             });
 
-            // Try upsert first (handles both insert and update)
-            const { error: upsertError } = await supabase
+            // Filter out empty records
+            const validBatch = cleanBatch.filter((r: any) => Object.keys(r).length > 0);
+            
+            if (validBatch.length === 0) continue;
+
+            // Insert without IDs (let database generate new ones)
+            const { error: insertError } = await supabase
               .from(table)
-              .upsert(cleanBatch, { onConflict: 'id' });
+              .insert(validBatch);
 
-            if (upsertError) {
-              // If upsert fails, try insert without IDs
-              const batchWithoutIds = cleanBatch.map((record: any) => {
-                const { id, ...rest } = record;
-                return rest;
-              });
-
-              const { error: insertError } = await supabase
-                .from(table)
-                .insert(batchWithoutIds);
-
-              if (insertError) {
-                errors.push(`${table} (batch ${i / batchSize + 1}): ${insertError.message}`);
-                console.error(`Error restoring ${table} batch:`, insertError);
-              } else {
-                totalRestored += batchWithoutIds.length;
-              }
+            if (insertError) {
+              console.error(`Error restoring ${table}:`, insertError);
+              errors.push(`${table}: ${insertError.message}`);
             } else {
-              totalRestored += cleanBatch.length;
+              totalRestored += validBatch.length;
+              console.log(`Restored ${validBatch.length} records to ${table}`);
             }
           }
         } catch (error: any) {
@@ -213,9 +229,10 @@ export default function BackupRestore() {
       if (errors.length > 0) {
         setBackupStatus({
           type: 'error',
-          message: `Restore completed with errors. ${totalRestored} records restored. Errors: ${errors.join(', ')}`,
+          message: `Restore completed with some errors. ${totalRestored} records restored. Some tables had issues: ${errors.length} errors.`,
         });
         toast.error(`Restore completed with some errors (${totalRestored} records)`);
+        console.error('Restore errors:', errors);
       } else {
         setBackupStatus({
           type: 'success',
@@ -373,8 +390,10 @@ export default function BackupRestore() {
             <h4 className="font-semibold">Limitations:</h4>
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
               <li>Backups do not include user information, roles, and authentication</li>
-              <li>Relationships between records are maintained through IDs</li>
-              <li>Timestamps are regenerated when restoring (created_at, updated_at)</li>
+              <li>When restoring, relationships (foreign keys) are removed to avoid conflicts</li>
+              <li>New IDs are generated for all restored records</li>
+              <li>Timestamps are regenerated when restoring</li>
+              <li>Best used for migrating data like accounts, products, customers, etc.</li>
             </ul>
           </div>
         </CardContent>

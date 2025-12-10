@@ -12,7 +12,7 @@ interface PurchaseFiltersProps {
 
 export function PurchaseFilters({ filters, onFiltersChange, vendors }: PurchaseFiltersProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-card rounded-lg border">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="space-y-2">
         <Label htmlFor="search">Search</Label>
         <Input

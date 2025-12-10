@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDashboardKPIs } from "@/hooks/useDashboardData";
+import { formatNumber, formatCurrency, formatPercent } from "@/lib/formatters";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -64,40 +65,40 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <KPICard
               title="Total Revenue"
-              value={`MRU ${kpis?.totalRevenue.toLocaleString() || 0}`}
+              value={formatCurrency(kpis?.totalRevenue)}
               description="Compared to previous period"
               icon={DollarSign}
               iconColor="bg-success"
               trend={{ 
-                value: `${kpis?.revenueTrend >= 0 ? '+' : ''}${kpis?.revenueTrend.toFixed(1)}%`, 
-                isPositive: kpis?.revenueTrend >= 0 
+                value: formatPercent(kpis?.revenueTrend), 
+                isPositive: (kpis?.revenueTrend || 0) >= 0 
               }}
             />
             <KPICard
               title="Total Expenses"
-              value={`MRU ${kpis?.totalExpenses.toLocaleString() || 0}`}
+              value={formatCurrency(kpis?.totalExpenses)}
               description="Operational costs"
               icon={CreditCard}
               iconColor="bg-destructive"
               trend={{ 
-                value: `${kpis?.expensesTrend >= 0 ? '+' : ''}${kpis?.expensesTrend.toFixed(1)}%`, 
-                isPositive: kpis?.expensesTrend < 0 
+                value: formatPercent(kpis?.expensesTrend), 
+                isPositive: (kpis?.expensesTrend || 0) < 0 
               }}
             />
             <KPICard
               title="Net Profit"
-              value={`MRU ${kpis?.netProfit.toLocaleString() || 0}`}
-              description={`${((kpis?.netProfit / (kpis?.totalRevenue || 1)) * 100).toFixed(1)}% profit margin`}
+              value={formatCurrency(kpis?.netProfit)}
+              description={`${((kpis?.netProfit || 0) / (kpis?.totalRevenue || 1) * 100).toFixed(1)}% profit margin`}
               icon={TrendingUp}
               iconColor="bg-primary"
               trend={{ 
-                value: `${kpis?.profitTrend >= 0 ? '+' : ''}${kpis?.profitTrend.toFixed(1)}%`, 
-                isPositive: kpis?.profitTrend >= 0 
+                value: formatPercent(kpis?.profitTrend), 
+                isPositive: (kpis?.profitTrend || 0) >= 0 
               }}
             />
             <KPICard
               title="Inventory Value"
-              value={`MRU ${kpis?.inventoryValue.toLocaleString() || 0}`}
+              value={formatCurrency(kpis?.inventoryValue)}
               description="Current stock valuation"
               icon={Package}
               iconColor="bg-chart-4"
@@ -107,28 +108,28 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <KPICard
               title="Low Stock Items"
-              value={kpis?.lowStockCount || 0}
+              value={formatNumber(kpis?.lowStockCount)}
               description="Require immediate attention"
               icon={AlertTriangle}
               iconColor="bg-warning"
             />
             <KPICard
               title="Total Transactions"
-              value={kpis?.totalTransactions || 0}
+              value={formatNumber(kpis?.totalTransactions)}
               description="All recorded activities"
               icon={Receipt}
               iconColor="bg-chart-1"
             />
             <KPICard
               title="Avg Order Value"
-              value={`MRU ${kpis?.avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 }) || 0}`}
+              value={formatCurrency(kpis?.avgOrderValue)}
               description="Per transaction average"
               icon={ShoppingCart}
               iconColor="bg-success"
             />
             <KPICard
               title="Active Products"
-              value={kpis?.activeProducts || 0}
+              value={formatNumber(kpis?.activeProducts)}
               description="In current inventory"
               icon={Box}
               iconColor="bg-primary"

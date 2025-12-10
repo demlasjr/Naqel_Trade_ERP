@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     account_from UUID REFERENCES accounts(id),
     account_to UUID REFERENCES accounts(id),
     amount DECIMAL(15, 2) NOT NULL,
-    status TEXT DEFAULT 'pending', -- Using TEXT for flexibility with status values
+    status transaction_status DEFAULT 'pending',
     reference TEXT,
     notes TEXT,
     created_by UUID REFERENCES profiles(id),
@@ -542,7 +542,7 @@ BEGIN
     IF user_count <= 1 THEN
         assigned_role := 'admin';
     ELSE
-        assigned_role := 'manager'; -- Default role for new users (can be changed by admin)
+        assigned_role := 'viewer'; -- Default role for new users (can be changed by admin)
     END IF;
     
     -- Create user role
@@ -752,23 +752,48 @@ ON user_roles FOR SELECT
 TO authenticated
 USING (true);
 
--- All authenticated users can insert user roles (needed for trigger/admin)
-CREATE POLICY "Authenticated users can insert user roles"
+-- Only admins can insert user roles (trigger uses SECURITY DEFINER so it bypasses RLS)
+CREATE POLICY "Admins can insert user roles"
 ON user_roles FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'admin'
+    )
+);
 
--- All authenticated users can update user roles
-CREATE POLICY "Authenticated users can update user roles"
+-- Only admins can update user roles
+CREATE POLICY "Admins can update user roles"
 ON user_roles FOR UPDATE
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1 FROM user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'admin'
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'admin'
+    )
+);
 
--- All authenticated users can delete user roles
-CREATE POLICY "Authenticated users can delete user roles"
+-- Only admins can delete user roles
+CREATE POLICY "Admins can delete user roles"
 ON user_roles FOR DELETE
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1 FROM user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'admin'
+    )
+);
 
 -- ROLES TABLE POLICIES
 CREATE POLICY "Authenticated users can view roles"
@@ -836,10 +861,16 @@ ON accounts FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete accounts"
+CREATE POLICY "Admins can delete accounts"
 ON accounts FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role = 'admin'
+  )
+);
 
 -- CUSTOMERS TABLE POLICIES
 -- Simplified: All authenticated users can manage customers
@@ -858,10 +889,16 @@ ON customers FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete customers"
+CREATE POLICY "Admins can delete customers"
 ON customers FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role = 'admin'
+  )
+);
 
 -- VENDORS TABLE POLICIES
 -- Simplified: All authenticated users can manage vendors
@@ -880,10 +917,16 @@ ON vendors FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete vendors"
+CREATE POLICY "Admins can delete vendors"
 ON vendors FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role = 'admin'
+  )
+);
 
 -- PRODUCTS TABLE POLICIES
 -- Simplified: All authenticated users can manage products
@@ -902,10 +945,16 @@ ON products FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete products"
+CREATE POLICY "Admins can delete products"
 ON products FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'inventory')
+  )
+);
 
 -- STOCK MOVEMENTS TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view stock movements"
@@ -934,10 +983,16 @@ ON transactions FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete transactions"
+CREATE POLICY "Admins can delete transactions"
 ON transactions FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'accountant')
+  )
+);
 
 -- SALES ORDERS TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view sales"
@@ -955,10 +1010,16 @@ ON sales_orders FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete sales"
+CREATE POLICY "Admins can delete sales"
 ON sales_orders FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'sales', 'accountant')
+  )
+);
 
 -- SALES LINE ITEMS TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view sales line items"
@@ -987,10 +1048,16 @@ ON purchase_orders FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete purchases"
+CREATE POLICY "Admins can delete purchases"
 ON purchase_orders FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'manager', 'accountant')
+  )
+);
 
 -- PURCHASE LINE ITEMS TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view purchase line items"
@@ -1019,10 +1086,16 @@ ON employees FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete employees"
+CREATE POLICY "Admins can delete employees"
 ON employees FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'hr')
+  )
+);
 
 -- PAYROLL TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view payroll"
@@ -1040,10 +1113,16 @@ ON payroll FOR UPDATE
 TO authenticated
 USING (true);
 
-CREATE POLICY "Authenticated users can delete payroll"
+CREATE POLICY "Admins can delete payroll"
 ON payroll FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role IN ('admin', 'hr', 'accountant')
+  )
+);
 
 -- ACTIVITY LOGS TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view all activity"
@@ -1056,10 +1135,16 @@ ON activity_logs FOR INSERT
 TO authenticated
 WITH CHECK (true);
 
-CREATE POLICY "Authenticated users can delete activity logs"
+CREATE POLICY "Admins can delete activity logs"
 ON activity_logs FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+    AND role = 'admin'
+  )
+);
 
 -- PRODUCT CATEGORIES TABLE POLICIES (Simplified)
 CREATE POLICY "Authenticated users can view categories"
@@ -1086,95 +1171,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE customers;
 ALTER PUBLICATION supabase_realtime ADD TABLE vendors;
 
 -- ============================================================================
--- DEFAULT ADMIN USER
--- ============================================================================
--- Creates a default admin user for initial access
--- Email: admin@admin.com
--- Password: Admin1234
--- ============================================================================
-
-DO $$
-DECLARE
-    admin_user_id UUID;
-BEGIN
-    -- Check if admin user already exists
-    SELECT id INTO admin_user_id FROM auth.users WHERE email = 'admin@admin.com';
-    
-    IF admin_user_id IS NULL THEN
-        -- Generate a new UUID for the admin user
-        admin_user_id := gen_random_uuid();
-        
-        -- Insert the admin user into auth.users
-        INSERT INTO auth.users (
-            id,
-            instance_id,
-            email,
-            encrypted_password,
-            email_confirmed_at,
-            raw_app_meta_data,
-            raw_user_meta_data,
-            aud,
-            role,
-            created_at,
-            updated_at,
-            confirmation_token,
-            recovery_token
-        ) VALUES (
-            admin_user_id,
-            '00000000-0000-0000-0000-000000000000',
-            'admin@admin.com',
-            crypt('Admin1234', gen_salt('bf')),
-            NOW(),
-            '{"provider": "email", "providers": ["email"]}',
-            '{"name": "Admin"}',
-            'authenticated',
-            'authenticated',
-            NOW(),
-            NOW(),
-            '',
-            ''
-        );
-        
-        -- Create the admin profile
-        INSERT INTO profiles (id, email, name, status)
-        VALUES (admin_user_id, 'admin@admin.com', 'Admin', 'active')
-        ON CONFLICT (id) DO UPDATE SET name = 'Admin', status = 'active';
-        
-        -- Assign admin role (delete existing role first if any, then insert)
-        DELETE FROM user_roles WHERE user_id = admin_user_id;
-        INSERT INTO user_roles (user_id, role)
-        VALUES (admin_user_id, 'admin');
-        
-        -- Create identity for email provider
-        INSERT INTO auth.identities (
-            id,
-            user_id,
-            identity_data,
-            provider,
-            provider_id,
-            created_at,
-            updated_at,
-            last_sign_in_at
-        ) VALUES (
-            gen_random_uuid(),
-            admin_user_id,
-            jsonb_build_object('sub', admin_user_id::text, 'email', 'admin@admin.com'),
-            'email',
-            admin_user_id::text,
-            NOW(),
-            NOW(),
-            NOW()
-        );
-        
-        RAISE NOTICE 'Admin user created successfully!';
-        RAISE NOTICE 'Email: admin@admin.com';
-        RAISE NOTICE 'Password: Admin1234';
-    ELSE
-        RAISE NOTICE 'Admin user already exists with ID: %', admin_user_id;
-    END IF;
-END $$;
-
--- ============================================================================
 -- COMPLETE!
 -- ============================================================================
 -- Your database is now fully set up with:
@@ -1183,12 +1179,9 @@ END $$;
 -- - All triggers for auto-updates
 -- - All RLS policies for security
 -- - Realtime subscriptions enabled
--- - Default admin user created
 -- 
--- DEFAULT ADMIN CREDENTIALS:
--- Email: admin@admin.com
--- Password: Admin1234
--- 
--- IMPORTANT: Change this password after first login!
+-- FIRST USER = ADMIN:
+-- The first user to sign up will automatically be assigned the 'admin' role.
+-- All subsequent users will be assigned the 'viewer' role by default.
 -- ============================================================================
 

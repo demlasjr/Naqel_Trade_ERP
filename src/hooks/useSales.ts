@@ -240,7 +240,7 @@ export function useSales() {
             .in("code", ["1110", "1010", "1000"])
             .eq("account_type", "asset")
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (accountByCode) {
             cashAccountId = accountByCode.id;
@@ -265,7 +265,7 @@ export function useSales() {
             .select("id")
             .eq("account_type", "revenue")
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (anyRevenue) {
             revenueAccountId = anyRevenue.id;
@@ -277,7 +277,7 @@ export function useSales() {
               .in("code", ["4000", "4100", "4200"])
               .eq("account_type", "revenue")
               .limit(1)
-              .single();
+              .maybeSingle();
 
             if (revenueByCode) {
               revenueAccountId = revenueByCode.id;
@@ -286,6 +286,15 @@ export function useSales() {
         }
 
         // Create transaction with both accounts
+        // For sales: Cash (asset) increases (debit) and Revenue increases (credit)
+        // According to GeneralLedger logic:
+        // - Revenue as account_to = credit (increase) ✓ (line 101)
+        // - Cash as account_to = debit (increase) ✓ (line 99)
+        // But we can only have one account_to, so we need to choose.
+        // The correct approach: account_from = cash, account_to = revenue
+        // - Revenue as account_to will be credited (increased) ✓
+        // - Cash as account_from will be credited (decreased) per GeneralLedger, but we manually increase it
+        // This matches standard double-entry: Debit Cash, Credit Revenue
         if (cashAccountId && revenueAccountId) {
           const { error: transactionError } = await supabase
             .from("transactions")
@@ -293,10 +302,10 @@ export function useSales() {
               date: orderData.date || new Date().toISOString().split("T")[0],
               type: "sale",
               description: `Sale order ${orderData.orderNumber} - ${orderData.customerName || "customer"}`,
-              account_from: revenueAccountId, // Income account (source)
-              account_to: cashAccountId, // Cash account (destination)
+              account_from: cashAccountId, // Cash account (source)
+              account_to: revenueAccountId, // Revenue account (destination) - will be credited (increased) per GeneralLedger
               amount: orderData.total,
-              status: "posted", // Use "posted" for completed sales
+              status: "posted",
               reference: orderData.orderNumber,
               notes: `Sale to ${orderData.customerName || "customer"}`,
               created_by: user.id,
@@ -306,6 +315,8 @@ export function useSales() {
             console.error("Error creating transaction:", transactionError);
           } else {
             // Update cash account balance (increase)
+            // Note: GeneralLedger would credit cash (decrease) when it's account_from,
+            // but for sales we need cash to increase, so we manually increase it
             const { data: cashAccount } = await supabase
               .from("accounts")
               .select("balance")
@@ -324,7 +335,8 @@ export function useSales() {
               }
             }
 
-            // Update revenue account balance (increase for revenue)
+            // Update revenue account balance (increase)
+            // According to GeneralLedger: if account_to is revenue, it's credited (increased) ✓
             const { data: revenueAccount } = await supabase
               .from("accounts")
               .select("balance")
@@ -332,6 +344,7 @@ export function useSales() {
               .single();
 
             if (revenueAccount) {
+              // Revenue accounts increase with credits when they are account_to
               const newBalance = (revenueAccount.balance || 0) + orderData.total;
               const { error: updateRevenueError } = await supabase
                 .from("accounts")

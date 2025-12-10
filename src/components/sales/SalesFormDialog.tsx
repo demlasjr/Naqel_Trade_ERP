@@ -165,10 +165,34 @@ export function SalesFormDialog({ sale, open, onOpenChange, onSave, customers, p
     const customer = customers.find((c) => c.id === formData.customerId);
     const totals = calculateTotals(formData.lineItems);
 
-    // If status is "paid", set paidAmount to total and balance to 0
-    const isPaid = formData.status === "paid";
-    const paidAmount = isPaid ? totals.total : (sale?.paidAmount || 0);
-    const balance = isPaid ? 0 : (totals.total - paidAmount);
+    // Only update paidAmount and balance when status is transitioning TO "paid"
+    // This preserves partial payment tracking and audit trails
+    const previousStatus = sale?.status || "draft";
+    const isTransitioningToPaid = formData.status === "paid" && previousStatus !== "paid";
+    
+    let paidAmount = sale?.paidAmount || 0;
+    let balance = totals.total - paidAmount;
+    
+    if (isTransitioningToPaid) {
+      // Status is changing to "paid" - mark as fully paid
+      paidAmount = totals.total;
+      balance = 0;
+    } else if (formData.status === "paid") {
+      // Status is already "paid" - preserve existing payment info
+      // Cap paidAmount to not exceed the new total (prevents negative balance)
+      // This handles cases where line items are removed and total is reduced
+      if (paidAmount > totals.total) {
+        paidAmount = totals.total;
+      }
+      balance = totals.total - paidAmount;
+    } else {
+      // Status is not "paid" - calculate balance normally
+      // Also cap paidAmount to total to prevent negative balance
+      if (paidAmount > totals.total) {
+        paidAmount = totals.total;
+      }
+      balance = totals.total - paidAmount;
+    }
 
     const saleData: Partial<SalesOrder> = {
       ...formData,

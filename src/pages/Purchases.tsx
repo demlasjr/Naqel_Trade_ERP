@@ -11,6 +11,7 @@ import { PurchaseFormDialog } from "@/components/purchases/PurchaseFormDialog";
 import { PurchaseBulkActionsBar } from "@/components/purchases/PurchaseBulkActionsBar";
 import { PurchaseAnalytics } from "@/components/purchases/PurchaseAnalytics";
 import { VendorFormDialog } from "@/components/purchases/VendorFormDialog";
+import { CollapsibleFilters } from "@/components/common/CollapsibleFilters";
 import { PurchaseOrder, PurchaseFilters as PurchaseFiltersType } from "@/types/purchase";
 import { Vendor } from "@/types/vendor";
 import { format } from "date-fns";
@@ -18,6 +19,7 @@ import { usePurchases } from "@/hooks/usePurchases";
 import { useVendors } from "@/hooks/useVendors";
 import { useProducts } from "@/hooks/useProducts";
 import { LoadingSpinner } from "@/components/loading/LoadingSpinner";
+import { formatAmount } from "@/lib/formatters";
 
 const statusStyles = {
   draft: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100",
@@ -216,7 +218,9 @@ export default function Purchases() {
 
           <PurchaseAnalytics purchases={purchases} />
 
-          <PurchaseFilters filters={filters} onFiltersChange={setFilters} vendors={vendors} />
+          <CollapsibleFilters title="Search & Filters">
+            <PurchaseFilters filters={filters} onFiltersChange={setFilters} vendors={vendors} />
+          </CollapsibleFilters>
 
           <div className="bg-card rounded-lg border">
         <div className="overflow-x-auto">
@@ -256,9 +260,9 @@ export default function Purchases() {
                   <td className="p-4">
                     <Badge className={statusStyles[purchase.status]}>{purchase.status.toUpperCase()}</Badge>
                   </td>
-                  <td className="p-4 text-right font-semibold">MRU {purchase.total.toLocaleString()}</td>
-                  <td className="p-4 text-right text-green-600">MRU {purchase.amountPaid.toLocaleString()}</td>
-                  <td className="p-4 text-right text-orange-600">MRU {purchase.balance.toLocaleString()}</td>
+                  <td className="p-4 text-right font-semibold">MRU {formatAmount(purchase.total)}</td>
+                  <td className="p-4 text-right text-green-600">MRU {formatAmount(purchase.amountPaid)}</td>
+                  <td className="p-4 text-right text-orange-600">MRU {formatAmount(purchase.balance)}</td>
                   <td className="p-4">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleView(purchase)}>
