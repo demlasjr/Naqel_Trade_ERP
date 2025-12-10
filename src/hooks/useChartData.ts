@@ -27,15 +27,15 @@ export function useMonthlyChartData() {
         // Fetch sales data
         const { data: salesData } = await supabase
           .from('sales_orders')
-          .select('total_amount, created_at')
-          .gte('created_at', startDate);
+          .select('total, date, created_at')
+          .gte('date', startDate.split('T')[0]);
 
-        // Fetch expense transactions
+        // Fetch expense transactions (purchases and expense type transactions)
         const { data: expenseData } = await supabase
           .from('transactions')
-          .select('amount, created_at, transaction_type')
-          .eq('transaction_type', 'expense')
-          .gte('created_at', startDate);
+          .select('amount, date, created_at, type')
+          .in('type', ['purchase', 'expense'])
+          .gte('date', startDate.split('T')[0]);
 
         // Group by month
         const monthlyData: Record<number, { sales: number; expenses: number }> = {};
@@ -45,13 +45,13 @@ export function useMonthlyChartData() {
         }
 
         salesData?.forEach(sale => {
-          const month = new Date(sale.created_at).getMonth();
-          monthlyData[month].sales += Number(sale.total_amount);
+          const month = new Date(sale.date || sale.created_at).getMonth();
+          monthlyData[month].sales += Number(sale.total || 0);
         });
 
         expenseData?.forEach(expense => {
-          const month = new Date(expense.created_at).getMonth();
-          monthlyData[month].expenses += Math.abs(Number(expense.amount));
+          const month = new Date(expense.date || expense.created_at).getMonth();
+          monthlyData[month].expenses += Math.abs(Number(expense.amount || 0));
         });
 
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -88,9 +88,9 @@ export function useExpenseBreakdown() {
 
         const { data: transactions } = await supabase
           .from('transactions')
-          .select('amount, description, transaction_type')
-          .eq('transaction_type', 'expense')
-          .gte('created_at', startDate);
+          .select('amount, description, type, date, created_at')
+          .in('type', ['purchase', 'expense'])
+          .gte('date', startDate.split('T')[0]);
 
         // Categorize expenses based on description keywords
         const categories: Record<string, number> = {

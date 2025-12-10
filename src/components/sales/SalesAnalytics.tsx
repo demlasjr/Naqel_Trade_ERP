@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SalesOrder } from "@/types/sale";
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, CreditCard } from "lucide-react";
+import { formatAmount, formatCurrency } from "@/lib/formatters";
 
 interface SalesAnalyticsProps {
   sales: SalesOrder[];
@@ -28,7 +29,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">MRU {totalRevenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
           <p className="text-xs text-muted-foreground">
             {statusCounts.paid || 0} paid orders
           </p>
@@ -41,7 +42,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <TrendingUp className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">MRU {paidRevenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold text-green-600">{formatCurrency(paidRevenue)}</div>
           <p className="text-xs text-muted-foreground">
             {((paidRevenue / totalRevenue) * 100 || 0).toFixed(1)}% of total
           </p>
@@ -54,7 +55,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <TrendingDown className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-orange-600">MRU {outstandingBalance.toFixed(2)}</div>
+          <div className="text-2xl font-bold text-orange-600">{formatCurrency(outstandingBalance)}</div>
           <p className="text-xs text-muted-foreground">
             {statusCounts.invoiced || 0} invoiced orders
           </p>
@@ -67,7 +68,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <ShoppingCart className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalOrders}</div>
+          <div className="text-2xl font-bold">{formatAmount(totalOrders, 0)}</div>
           <p className="text-xs text-muted-foreground">
             {statusCounts.draft || 0} drafts, {statusCounts.confirmed || 0} confirmed
           </p>
@@ -80,7 +81,7 @@ export function SalesAnalytics({ sales }: SalesAnalyticsProps) {
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">MRU {averageOrderValue.toFixed(2)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(averageOrderValue)}</div>
           <p className="text-xs text-muted-foreground">
             Per order average
           </p>

@@ -290,7 +290,7 @@ export default function Sales() {
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" onClick={() => handleViewDetails(sale)} title="View Invoice">
                             <FileText className="h-4 w-4" />
                           </Button>
                         </div>
